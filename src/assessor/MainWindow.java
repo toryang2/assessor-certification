@@ -7,7 +7,7 @@ package assessor;
 import assessor.util.CurrencyRenderer;
 import assessor.util.DateRenderer;
 import assessor.util.NonEditableTableModel;
-import assessor.util.RefreshData;
+import assessor.util.KeyboardRefresh;
 import assessor.util.ReportLoader;
 import assessor.util.ReportLoader.LoadCallbacks;
 import assessor.util.TableRightRenderer;
@@ -77,16 +77,22 @@ public class MainWindow extends javax.swing.JFrame {
         Title.setText("NO LANDHOLDING");
 
         jButton1.setText("jButton1");
+        jButton1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
         jButton2.setText("jButton2");
+        jButton2.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
         jButton3.setText("jButton3");
+        jButton3.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
         jButton4.setText("jButton4");
+        jButton4.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
         jButton5.setText("jButton5");
+        jButton5.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
         jButton6.setText("jButton6");
+        jButton6.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
         javax.swing.GroupLayout jNoLandHoldingPanelLayout = new javax.swing.GroupLayout(jNoLandHoldingPanel);
         jNoLandHoldingPanel.setLayout(jNoLandHoldingPanelLayout);
@@ -268,7 +274,7 @@ public class MainWindow extends javax.swing.JFrame {
                 .addComponent(jMainPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jReportPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 252, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 282, Short.MAX_VALUE)
                 .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -287,13 +293,11 @@ public class MainWindow extends javax.swing.JFrame {
         NonEditableTableModel cleanModel = new NonEditableTableModel();
         jTableReports.setModel(cleanModel);
         
-        RefreshData keyboardRefresh = new RefreshData(reportLoader, this);
         // Initialize loader with callback for UI updates
         reportLoader = new ReportLoader(cleanModel, new LoadCallbacks() {
             @Override
             public void onLoadStart() {
                 btnRefresh.setEnabled(false);
-                keyboardRefresh.setRefreshing(true);
                 cleanModel.setRowCount(0);
                 cleanModel.addRow(new Object[]{"Loading reports..."});
             }
@@ -311,9 +315,11 @@ public class MainWindow extends javax.swing.JFrame {
                 btnRefresh.setEnabled(true);
             }
         });
-        
+    
         // Setup refresh button
         btnRefresh.addActionListener(e -> reportLoader.loadData());
+        
+        new KeyboardRefresh(reportLoader, this);
                 
         // Initial load
         reportLoader.loadData();
@@ -329,8 +335,8 @@ public class MainWindow extends javax.swing.JFrame {
                 case "id":
                     column.setHeaderValue("ID");
                     column.setCellRenderer(new TableRightRenderer());
-                    column.setPreferredWidth(50);  // Increased from 10 for better visibility
-                    column.setMaxWidth(50);         // Prevent excessive widening
+                    column.setPreferredWidth(50);
+                    column.setMaxWidth(50);
                     column.setMinWidth(50);
                     break;
                 case "certificationdate":
@@ -346,6 +352,13 @@ public class MainWindow extends javax.swing.JFrame {
                     column.setPreferredWidth(100);  // hh:mm a format
                     column.setMaxWidth(120);
                     column.setMinWidth(120);
+                    break;
+                    
+                case "parent2":
+                    column.setHeaderValue("Parent");
+                    column.setPreferredWidth(200);
+                    column.setMaxWidth(200);
+                    column.setMinWidth(200);
                     break;
                 case "amount":
                     column.setCellRenderer(new CurrencyRenderer());

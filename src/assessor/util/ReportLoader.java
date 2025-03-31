@@ -6,6 +6,10 @@ import java.sql.*;
 import java.util.*;
 
 public class ReportLoader {
+    private volatile boolean isRefreshing = false;
+    private final Object refreshLock = new Object();
+    private boolean refreshInProgress = false;
+    
     private final DefaultTableModel model;
     private final LoadCallbacks callbacks;
     
@@ -21,6 +25,9 @@ public class ReportLoader {
     }
 
     public void loadData() {
+        if (refreshInProgress) return;
+        refreshInProgress = true;
+        
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -82,6 +89,20 @@ public class ReportLoader {
                 }
                 return null;
             }
+            
+            @Override
+            protected void done() {
+                refreshInProgress = false;
+                try {
+                    get(); // Handle exceptions
+                } catch (Exception ex) {
+                    SwingUtilities.invokeLater(() -> 
+                        callbacks.onLoadError(ex.getMessage()));
+                }
+            }
         }.execute();
+    }
+    public boolean hasActiveRefresh() {
+        return refreshInProgress;
     }
 }

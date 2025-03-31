@@ -69,7 +69,7 @@
               <Component id="jMainPanel" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
               <Component id="jReportPanel" min="-2" max="-2" attributes="0"/>
-              <EmptySpace pref="252" max="32767" attributes="0"/>
+              <EmptySpace pref="282" max="32767" attributes="0"/>
               <Component id="jPanel3" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
           </Group>
@@ -188,31 +188,37 @@
             <Component class="javax.swing.JButton" name="jButton1">
               <Properties>
                 <Property name="text" type="java.lang.String" value="jButton1"/>
+                <Property name="horizontalAlignment" type="int" value="2"/>
               </Properties>
             </Component>
             <Component class="javax.swing.JButton" name="jButton2">
               <Properties>
                 <Property name="text" type="java.lang.String" value="jButton2"/>
+                <Property name="horizontalAlignment" type="int" value="2"/>
               </Properties>
             </Component>
             <Component class="javax.swing.JButton" name="jButton3">
               <Properties>
                 <Property name="text" type="java.lang.String" value="jButton3"/>
+                <Property name="horizontalAlignment" type="int" value="2"/>
               </Properties>
             </Component>
             <Component class="javax.swing.JButton" name="jButton4">
               <Properties>
                 <Property name="text" type="java.lang.String" value="jButton4"/>
+                <Property name="horizontalAlignment" type="int" value="2"/>
               </Properties>
             </Component>
             <Component class="javax.swing.JButton" name="jButton5">
               <Properties>
                 <Property name="text" type="java.lang.String" value="jButton5"/>
+                <Property name="horizontalAlignment" type="int" value="2"/>
               </Properties>
             </Component>
             <Component class="javax.swing.JButton" name="jButton6">
               <Properties>
                 <Property name="text" type="java.lang.String" value="jButton6"/>
+                <Property name="horizontalAlignment" type="int" value="2"/>
               </Properties>
             </Component>
           </SubComponents>
