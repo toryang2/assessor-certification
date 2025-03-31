@@ -18,7 +18,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridLayout;
 import java.util.Arrays;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -299,6 +298,7 @@ public class MainWindow extends javax.swing.JFrame {
     
     private void postInitSetup() {
         
+	setTitle("Assessor Certification");
         // Configure table with fresh model immediately
         NonEditableTableModel cleanModel = new NonEditableTableModel();
         jTableReports.setModel(cleanModel);
