@@ -4,6 +4,7 @@
  */
 package assessor;
 
+import assessor.ui.UserSettings;
 import assessor.util.CurrencyRenderer;
 import assessor.util.DateRenderer;
 import assessor.util.NonEditableTableModel;
@@ -12,10 +13,16 @@ import assessor.util.ReportLoader;
 import assessor.util.ReportLoader.LoadCallbacks;
 import assessor.util.TableRightRenderer;
 import assessor.util.TimeRenderer;
-import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.util.Arrays;
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 
@@ -24,6 +31,7 @@ import javax.swing.table.TableColumn;
  * @author Toryang
  */
 public class MainWindow extends javax.swing.JFrame {
+    private UserSettings userSettings;
     
     private ReportLoader reportLoader;
     /**
@@ -31,6 +39,7 @@ public class MainWindow extends javax.swing.JFrame {
      */
     public MainWindow() {
         initComponents();
+        userSettings = new UserSettings("defaultPassword");
         postInitSetup();
     }
 
@@ -289,6 +298,7 @@ public class MainWindow extends javax.swing.JFrame {
     
     
     private void postInitSetup() {
+        
         // Configure table with fresh model immediately
         NonEditableTableModel cleanModel = new NonEditableTableModel();
         jTableReports.setModel(cleanModel);
@@ -323,6 +333,189 @@ public class MainWindow extends javax.swing.JFrame {
                 
         // Initial load
         reportLoader.loadData();
+        
+        setupUserButton();
+    }
+    
+    private void setupUserButton() {
+        JMenuBar menuBar = this.jMenuBar1;
+        menuBar.add(Box.createHorizontalGlue());
+
+        JButton userButton = new JButton();
+        userButton.putClientProperty("JButton.buttonType", "toolBarButton");
+        userButton.setFocusable(false);
+        userButton.setToolTipText("User Settings");
+
+        // Load SVG icon
+        try {
+            FlatSVGIcon svgIcon = new FlatSVGIcon("assessor/ui/icons/users.svg", 15, 15);
+            userButton.setIcon(svgIcon);
+        } catch(Exception e) {
+            // Fallback to standard icon
+            ImageIcon icon = new ImageIcon(getClass().getResource("/assessor/ui/icons/users.png"));
+            userButton.setIcon(icon);
+            userButton.setText("User");
+        }
+
+        userButton.addActionListener(e -> showPasswordDialog());
+        menuBar.add(userButton);
+    }
+    
+    private void showPasswordDialog() {
+        JDialog dialog = new JDialog(this, "Change Password", true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setResizable(false);
+
+        // Header Panel
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel headerLabel = new JLabel("Account Security");
+        headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        headerPanel.add(headerLabel);
+
+        // Form Panel
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        InputField currentPassField = new InputField("Current Password", true);
+        InputField newPassField = new InputField("New Password", true);
+        newPassField.setStrengthMeter(true);
+        InputField confirmPassField = new InputField("Confirm Password", true);
+
+        formPanel.add(currentPassField);
+        formPanel.add(Box.createVerticalStrut(10));
+        formPanel.add(newPassField);
+        formPanel.add(Box.createVerticalStrut(10));
+        formPanel.add(confirmPassField);
+
+        // Action Panel
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 10, 10));
+
+        JButton btnCancel = new JButton("Cancel");
+        JButton btnSubmit = new JButton("Update Password");
+        btnSubmit.setBackground(new Color(0, 120, 215));
+        btnSubmit.setForeground(Color.WHITE);
+
+        btnSubmit.addActionListener(e -> processPasswordChange(
+            currentPassField.getPassword(),
+            newPassField.getPassword(),
+            confirmPassField.getPassword(),
+            dialog
+        ));
+
+        btnCancel.addActionListener(e -> dialog.dispose());
+
+        actionPanel.add(btnCancel);
+        actionPanel.add(btnSubmit);
+
+        dialog.add(headerPanel, BorderLayout.NORTH);
+        dialog.add(formPanel, BorderLayout.CENTER);
+        dialog.add(actionPanel, BorderLayout.SOUTH);
+
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    // Custom Input Field Component
+    class InputField extends JPanel {
+        private JPasswordField passwordField;
+        private JProgressBar strengthBar;
+
+        public InputField(String label, boolean isPassword) {
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+
+            JLabel fieldLabel = new JLabel(label);
+            fieldLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+
+            if(isPassword) {
+                passwordField = new JPasswordField(20);
+            } else {
+                passwordField = new JPasswordField(20);
+                passwordField.setEchoChar((char)0);
+            }
+
+            passwordField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+            ));
+
+            add(fieldLabel);
+            add(Box.createVerticalStrut(5));
+            add(passwordField);
+        }
+
+        public void setStrengthMeter(boolean enabled) {
+            if(enabled) {
+                strengthBar = new JProgressBar(0, 4);
+                strengthBar.setStringPainted(true);
+                strengthBar.setString("Strength");
+                strengthBar.setForeground(new Color(0, 180, 0));
+                add(Box.createVerticalStrut(5));
+                add(strengthBar);
+
+                passwordField.getDocument().addDocumentListener(new DocumentListener() {
+                    public void changedUpdate(DocumentEvent e) { update(); }
+                    public void insertUpdate(DocumentEvent e) { update(); }
+                    public void removeUpdate(DocumentEvent e) { update(); }
+
+                    private void update() {
+                        String pass = new String(passwordField.getPassword());
+                        int strength = calculatePasswordStrength(pass);
+                        strengthBar.setValue(strength);
+                    }
+                });
+            }
+        }
+
+        private int calculatePasswordStrength(String pass) {
+            int strength = 0;
+            if(pass.length() >= 8) strength++;
+            if(pass.matches(".*[A-Z].*")) strength++;
+            if(pass.matches(".*\\d.*")) strength++;
+            if(pass.matches(".*[^a-zA-Z0-9].*")) strength++;
+            return strength;
+        }
+
+        public char[] getPassword() {
+            return passwordField.getPassword();
+        }
+    }
+    
+        private void processPasswordChange(char[] currentPass, 
+                                      char[] newPass, 
+                                      char[] confirmPass, 
+                                      JDialog dialog) {
+        try {
+            if (!userSettings.validateCurrentPassword(currentPass)) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Invalid current password",
+                    "Authentication Error",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            userSettings.validateNewPassword(newPass, confirmPass);
+            userSettings.changePassword(newPass);
+
+            JOptionPane.showMessageDialog(dialog,
+                "Password updated successfully!\nPlease login again.",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE);
+
+            dialog.dispose();
+        } catch(IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(dialog,
+                ex.getMessage(),
+                "Validation Error",
+                JOptionPane.WARNING_MESSAGE);
+        } finally {
+            Arrays.fill(currentPass, '\0');
+            Arrays.fill(newPass, '\0');
+            Arrays.fill(confirmPass, '\0');
+        }
     }
     
     private void configureColumnRenderers() {
