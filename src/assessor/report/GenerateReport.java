@@ -9,6 +9,7 @@ import net.sf.jasperreports.engine.xml.JRXmlLoader;
 import net.sf.jasperreports.view.JasperViewer;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.awt.BorderLayout;
 import javax.swing.*;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -17,6 +18,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
 import java.util.Map;
+import net.sf.jasperreports.swing.JRViewer;
 
 public class GenerateReport {
     
@@ -108,30 +110,69 @@ public class GenerateReport {
         return JasperFillManager.fillReport(report, params, conn);
     }
 
-private static void displayReport(JasperPrint print, String title, String iconPath) {
-    SwingUtilities.invokeLater(() -> {
-        JasperViewer viewer = new JasperViewer(print, false);
-        viewer.setTitle(title);
+    private static void displayReport(JasperPrint print, String title, String iconPath) {
+        SwingUtilities.invokeLater(() -> {
+            JasperViewer viewer = new JasperViewer(print, false);
+            viewer.setTitle(title);
+
+            if (iconPath.toLowerCase().endsWith(".svg")) {
+                // Load SVG icon
+                FlatSVGIcon svgIcon = new FlatSVGIcon(iconPath, 32, 32);
+                viewer.setIconImage(svgIcon.getImage());
+            } else {
+                // Load other image formats (PNG, JPG, etc.)
+                URL iconUrl = GenerateReport.class.getResource(iconPath);
+                if (iconUrl != null) {
+                    viewer.setIconImage(new ImageIcon(iconUrl).getImage());
+                } else {
+                    System.err.println("Icon resource missing: " + iconPath);
+                    // Optionally show an error dialog
+                }
+            }
+
+            viewer.setZoomRatio(0.75f);
+            viewer.setVisible(true);
+        });
+    }
+
+    public static JPanel generateReportPanel(Map<String, Object> parameters,
+                                           String customTitle, 
+                                           String iconPath) {
+        try {
+            Connection connection = createConnection();
+            validateIDs(parameters.get("SelectedIDs"));
+            InputStream jrxmlStream = loadTemplate(parameters);
+            JasperPrint jasperPrint = compileAndFill(jrxmlStream, parameters, connection);
+            return createReportViewer(jasperPrint, customTitle, iconPath);
+        } catch (Exception e) {
+            throw new RuntimeException("Report generation failed", e);
+        }
+    }
+
+    private static JPanel createReportViewer(JasperPrint print, 
+                                           String title, 
+                                           String iconPath) {
+        JPanel container = new JPanel(new BorderLayout());
         
-        if (iconPath.toLowerCase().endsWith(".svg")) {
-            // Load SVG icon
-            FlatSVGIcon svgIcon = new FlatSVGIcon(iconPath, 32, 32);
-            viewer.setIconImage(svgIcon.getImage());
-        } else {
-            // Load other image formats (PNG, JPG, etc.)
+        // Create toolbar with title and icon
+        JToolBar toolbar = new JToolBar();
+        toolbar.add(new JLabel(title));
+        try {
             URL iconUrl = GenerateReport.class.getResource(iconPath);
             if (iconUrl != null) {
-                viewer.setIconImage(new ImageIcon(iconUrl).getImage());
-            } else {
-                System.err.println("Icon resource missing: " + iconPath);
-                // Optionally show an error dialog
+                toolbar.add(new JLabel(new ImageIcon(iconUrl)));
             }
+        } catch (Exception e) {
+            System.err.println("Error loading icon: " + e.getMessage());
         }
         
-        viewer.setZoomRatio(0.75f);
-        viewer.setVisible(true);
-    });
-}
+        // Add JRViewer component
+        JRViewer viewer = new JRViewer(print);
+        container.add(toolbar, BorderLayout.NORTH);
+        container.add(viewer, BorderLayout.CENTER);
+        
+        return container;
+    }
 
 
     private static void closeConnection(Connection conn) {

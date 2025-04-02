@@ -364,6 +364,7 @@ public class MainWindow extends javax.swing.JFrame {
         
         ImageIcon icon = new ImageIcon(getClass().getResource("/resources/icon/ico.png"));
         setIconImage(icon.getImage());
+        jPrintReportPanel = new JPanel();
         
         // Configure table with fresh model immediately
         NonEditableTableModel cleanModel = new NonEditableTableModel();
@@ -547,18 +548,51 @@ public void showPrintReportTab() {
             params.put("SelectedIDs", selectedIDs);
             params.put("ReportType", reportType);  // Direct type from database
 
-            GenerateReport.generateReport(
-                params,
-                reportType + " Report",  // Title for display
-                "assessor/ui/icons/printer.svg"
+//            GenerateReport.generateReport(
+//                params,
+//                reportType + " Report",  // Title for display
+//                "assessor/ui/icons/printer.svg"
+                    
+            JPanel reportViewer = GenerateReport.generateReportPanel(
+            params,
+            reportType + " Report",
+            "/assessor/ui/icons/printer.png"
             );
-
+            
+            jPrintReportPanel.setName(reportType + " Report");
+            configureReportTab(reportViewer);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, 
                 "Error generating report: " + e.getMessage(), 
                 "Generation Error", 
                 JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    private void configureReportTab(JPanel reportContent) {
+        // Clear previous content
+        jPrintReportPanel.removeAll();
+        jPrintReportPanel.setLayout(new BorderLayout());
+        jPrintReportPanel.add(reportContent, BorderLayout.CENTER);
+        jPrintReportPanel.revalidate();
+        jPrintReportPanel.repaint();
+
+        // Add tab if not present
+        if (!tabExists(jPrintReportPanel)) {
+            jTabbedPane.addTab("Report", jPrintReportPanel);
+        }
+
+        // Switch to report tab
+        jTabbedPane.setSelectedComponent(jPrintReportPanel);
+    }
+
+    private boolean tabExists(JPanel panel) {
+        for (int i = 0; i < jTabbedPane.getTabCount(); i++) {
+            if (jTabbedPane.getComponentAt(i) == panel) {
+                return true;
+            }
+        }
+        return false;
     }
     
     private void setupUserButton() {
@@ -749,8 +783,8 @@ public void showPrintReportTab() {
         jTableReports.setRowSorter(sorter);
         
             // Set custom header renderer to prevent shifting
-    JTableHeader header = jTableReports.getTableHeader();
-    DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer() {
+        JTableHeader header = jTableReports.getTableHeader();
+        DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer() {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus,
@@ -887,6 +921,7 @@ public void showPrintReportTab() {
         }
         jTableReports.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         jTableReports.getTableHeader().setReorderingAllowed(false);
+        jTableReports.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     }
     
     public static void main(String args[]) {
