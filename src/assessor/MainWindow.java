@@ -364,7 +364,6 @@ public class MainWindow extends javax.swing.JFrame {
         
         ImageIcon icon = new ImageIcon(getClass().getResource("/resources/icon/ico.png"));
         setIconImage(icon.getImage());
-        jPrintReportPanel = new JPanel();
         
         // Configure table with fresh model immediately
         NonEditableTableModel cleanModel = new NonEditableTableModel();
@@ -463,7 +462,7 @@ public class MainWindow extends javax.swing.JFrame {
     }
         
     
-    private void setTabIcons() {
+    public void setTabIcons() {
     // Load SVG icons
     FlatSVGIcon certificateIcon = new FlatSVGIcon("assessor/ui/icons/certificate.svg", 16, 16);
     FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 16, 16);
@@ -491,7 +490,7 @@ private void setTabComponent(JPanel panel, String title, FlatSVGIcon icon, boole
 
     // Add close button only if allowed
     if (hasCloseButton) {
-        JButton closeButton = new JButton(new FlatSVGIcon("assessor/ui/icons/close.svg", 12, 12));
+        JButton closeButton = new JButton(new FlatSVGIcon("assessor/ui/icons/close.svg", 25, 25));
         closeButton.setBorderPainted(false);
         closeButton.setContentAreaFilled(false);
         closeButton.setFocusable(false);
@@ -559,7 +558,6 @@ public void showPrintReportTab() {
             "/assessor/ui/icons/printer.png"
             );
             
-            jPrintReportPanel.setName(reportType + " Report");
             configureReportTab(reportViewer);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, 
@@ -570,30 +568,32 @@ public void showPrintReportTab() {
     }
     
     private void configureReportTab(JPanel reportContent) {
-        // Clear previous content
-        jPrintReportPanel.removeAll();
-        jPrintReportPanel.setLayout(new BorderLayout());
-        jPrintReportPanel.add(reportContent, BorderLayout.CENTER);
-        jPrintReportPanel.revalidate();
-        jPrintReportPanel.repaint();
+    // Clear previous content
+    jPrintReportPanel.removeAll();
+    jPrintReportPanel.setLayout(new BorderLayout());
+    jPrintReportPanel.add(reportContent, BorderLayout.CENTER);
+    jPrintReportPanel.revalidate();
+    jPrintReportPanel.repaint();
 
-        // Add tab if not present
-        if (!tabExists(jPrintReportPanel)) {
-            jTabbedPane.addTab("Report", jPrintReportPanel);
-        }
-
-        // Switch to report tab
-        jTabbedPane.setSelectedComponent(jPrintReportPanel);
+    // Add tab if not present
+    if (!tabExists(jPrintReportPanel)) {
+        jTabbedPane.addTab("Report", jPrintReportPanel);
+        FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 25, 25);
+        setTabComponent(jPrintReportPanel, "Report", reportIcon, true);
     }
 
-    private boolean tabExists(JPanel panel) {
-        for (int i = 0; i < jTabbedPane.getTabCount(); i++) {
-            if (jTabbedPane.getComponentAt(i) == panel) {
-                return true;
-            }
+    // Switch to report tab
+    jTabbedPane.setSelectedComponent(jPrintReportPanel);
+}
+
+private boolean tabExists(JPanel panel) {
+    for (int i = 0; i < jTabbedPane.getTabCount(); i++) {
+        if (jTabbedPane.getComponentAt(i) == panel) {
+            return true;
         }
-        return false;
     }
+    return false;
+}
     
     private void setupUserButton() {
         JMenuBar menuBar = this.jMenuBar1;
