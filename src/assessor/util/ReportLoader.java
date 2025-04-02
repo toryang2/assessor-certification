@@ -39,9 +39,9 @@ public class ReportLoader {
                         ConfigHelper.getDbPassword());
                      
                      Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery("SELECT id AS ID, MaritalStatus, ParentGuardian, Patient, Hospital,"
+                     ResultSet rs = stmt.executeQuery("SELECT id AS ID, Type AS Type, Patient, ParentGuardian, ParentGuardian2, MaritalStatus, Hospital,"
                              + " HospitalAddress, Relationship, Barangay, CertificationDate, CertificationTime,"
-                             + " AmountPaid, ReceiptNo, ReceiptDateIssued, PlaceIssued, Type AS Type, Signatory"
+                             + " AmountPaid, ReceiptNo, ReceiptDateIssued, PlaceIssued, Signatory"
                              + " FROM reports")) {
                     
                     // Process results

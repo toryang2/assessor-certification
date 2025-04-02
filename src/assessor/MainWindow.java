@@ -18,8 +18,11 @@ import assessor.util.TimeRenderer;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -31,9 +34,13 @@ import java.util.Map;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 
 /**
  *
@@ -220,15 +227,18 @@ public class MainWindow extends javax.swing.JFrame {
 
         jTableReports.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+                {},
+                {},
+                {},
+                {}
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
+
             }
         ));
+        jTableReports.setShowGrid(true);
+        jTableReports.getTableHeader().setResizingAllowed(false);
+        jTableReports.getTableHeader().setReorderingAllowed(false);
         jReportScrollPane.setViewportView(jTableReports);
 
         javax.swing.GroupLayout jReportPanelLayout = new javax.swing.GroupLayout(jReportPanel);
@@ -450,18 +460,65 @@ public class MainWindow extends javax.swing.JFrame {
             }
         });
     }
+        
     
     private void setTabIcons() {
-        // Load SVG icons
-        FlatSVGIcon certificateIcon = new FlatSVGIcon("assessor/ui/icons/certificate.svg", 16, 16);
-        FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 16, 16);
+    // Load SVG icons
+    FlatSVGIcon certificateIcon = new FlatSVGIcon("assessor/ui/icons/certificate.svg", 16, 16);
+    FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 16, 16);
 
-        // Assign icons to tabs
-        jTabbedPane.setIconAt(jTabbedPane.indexOfComponent(jPrintReportPanel), reportIcon);
-        jTabbedPane.setIconAt(jTabbedPane.indexOfComponent(jReportPanel), certificateIcon);
+    // Set Certificates tab (NO close button)
+    setTabComponent(jReportPanel, "Certificates", certificateIcon, false);
 
+    // Set Report tab (WITH close button), initially hidden
+    setTabComponent(jPrintReportPanel, "Report", reportIcon, true);
+    jTabbedPane.remove(jPrintReportPanel); // Hide tab by default
+}
+
+// Custom method for setting tab components
+private void setTabComponent(JPanel panel, String title, FlatSVGIcon icon, boolean hasCloseButton) {
+    int index = jTabbedPane.indexOfComponent(panel);
+    if (index == -1) return; // Ensure tab exists
+
+    // Panel for tab (title + icon + optional close button)
+    JPanel tabPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    tabPanel.setOpaque(false);
+
+    // Label for icon + title
+    JLabel titleLabel = new JLabel(title, icon, JLabel.LEFT);
+    tabPanel.add(titleLabel);
+
+    // Add close button only if allowed
+    if (hasCloseButton) {
+        JButton closeButton = new JButton(new FlatSVGIcon("assessor/ui/icons/close.svg", 12, 12));
+        closeButton.setBorderPainted(false);
+        closeButton.setContentAreaFilled(false);
+        closeButton.setFocusable(false);
+        closeButton.setPreferredSize(new Dimension(16, 16));
+
+        // Remove tab on button click
+        closeButton.addActionListener(e -> {
+            int tabIndex = jTabbedPane.indexOfComponent(panel);
+            if (tabIndex != -1) {
+                jTabbedPane.remove(tabIndex);
+            }
+        });
+
+        tabPanel.add(closeButton);
     }
-    
+
+    // Set custom tab
+    jTabbedPane.setTabComponentAt(index, tabPanel);
+}
+
+// Method to show jPrintReportPanel when needed
+public void showPrintReportTab() {
+    if (jTabbedPane.indexOfComponent(jPrintReportPanel) == -1) {
+        jTabbedPane.addTab("Report", null, jPrintReportPanel);
+        setTabIcons(); // Reapply icons and close buttons
+    }
+}
+
     private void handleReportGeneration() {
         int row = jTableReports.getSelectedRow();
         if (row == -1) return;
@@ -688,6 +745,34 @@ public class MainWindow extends javax.swing.JFrame {
     private void configureColumnRenderers() {
         DefaultTableModel model = (DefaultTableModel) jTableReports.getModel();
         
+        TableRowSorter<TableModel> sorter = new TableRowSorter<>(model);
+        jTableReports.setRowSorter(sorter);
+        
+            // Set custom header renderer to prevent shifting
+    JTableHeader header = jTableReports.getTableHeader();
+    DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            // Keep the default system colors
+            setBackground(UIManager.getColor("TableHeader.background"));
+            setForeground(UIManager.getColor("TableHeader.foreground"));
+            setFont(UIManager.getFont("TableHeader.font"));
+
+            // Align text to center
+            setHorizontalAlignment(SwingConstants.CENTER);
+
+            // Ensure a visible border
+            setBorder(UIManager.getBorder("TableHeader.cellBorder"));
+
+            setOpaque(true); // Ensure background is painted properly
+            return this;
+        }
+    };
+    header.setDefaultRenderer(headerRenderer);
+        
         for (int i = 0; i < model.getColumnCount(); i++) {
             TableColumn column = jTableReports.getColumnModel().getColumn(i);
             String colName = model.getColumnName(i).toLowerCase();
@@ -801,6 +886,7 @@ public class MainWindow extends javax.swing.JFrame {
             }
         }
         jTableReports.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        jTableReports.getTableHeader().setReorderingAllowed(false);
     }
     
     public static void main(String args[]) {
