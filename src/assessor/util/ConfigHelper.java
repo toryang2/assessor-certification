@@ -1,16 +1,21 @@
 package assessor.util;
 
+import com.sun.jdi.connect.spi.Connection;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.*;
 
 public class ConfigHelper {
+    private static final Logger logger = Logger.getLogger(ConfigHelper.class.getName());
     private static final Map<String, String> configMap = new HashMap<>();
     
     static {
-        loadConfig();
+        loadConfig(); // Load the config once during class initialization
     }
     
     private static void loadConfig() {
@@ -37,23 +42,41 @@ public class ConfigHelper {
                 }
             }
         } catch (IOException ex) {
-            System.err.println("Error reading configuration:");
+            logger.severe("Error reading configuration: " + ex.getMessage());
             ex.printStackTrace();
         }
     }
     
     public static String getDbUrl() {
+        if (!validateConfigKeys()) {
+            logger.severe("Invalid/missing configuration values");
+            throw new RuntimeException("Configuration error");
+        }
+
         return String.format("jdbc:mysql://%s:%s/%s",
             configMap.get("Server"),
             configMap.get("Port"),
             configMap.get("Database"));
     }
-    
+   
     public static String getDbUser() {
         return configMap.get("User ID");
     }
     
     public static String getDbPassword() {
-        return configMap.get("Password");
+        return configMap.getOrDefault("Password", "");
+    }
+
+    private static boolean validateConfigKeys() {
+        String[] requiredKeys = {"Server", "Port", "Database", "User ID", "Password"};
+        List<String> missingKeys = Arrays.stream(requiredKeys)
+            .filter(k -> !configMap.containsKey(k))
+            .toList();
+        
+        if (!missingKeys.isEmpty()) {
+            logger.log(Level.SEVERE, "Missing config keys: {0}", missingKeys);
+            return false;
+        }
+        return true;
     }
 }

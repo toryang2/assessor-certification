@@ -39,7 +39,10 @@ public class ReportLoader {
                         ConfigHelper.getDbPassword());
                      
                      Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery("SELECT * FROM reports")) {
+                     ResultSet rs = stmt.executeQuery("SELECT id AS ID, MaritalStatus, ParentGuardian, Patient, Hospital,"
+                             + " HospitalAddress, Relationship, Barangay, CertificationDate, CertificationTime,"
+                             + " AmountPaid, ReceiptNo, ReceiptDateIssued, PlaceIssued, Type AS Type, Signatory"
+                             + " FROM reports")) {
                     
                     // Process results
                     ResultSetMetaData meta = rs.getMetaData();

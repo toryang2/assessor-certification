@@ -4,11 +4,13 @@
  */
 package assessor;
 
+import assessor.report.GenerateReport;
 import assessor.ui.UserSettings;
 import assessor.util.CurrencyRenderer;
 import assessor.util.DateRenderer;
 import assessor.util.NonEditableTableModel;
 import assessor.util.KeyboardRefresh;
+import assessor.util.RedTextRenderer;
 import assessor.util.ReportLoader;
 import assessor.util.ReportLoader.LoadCallbacks;
 import assessor.util.TableRightRenderer;
@@ -18,12 +20,20 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 
 /**
  *
@@ -31,6 +41,7 @@ import javax.swing.table.TableColumn;
  */
 public class MainWindow extends javax.swing.JFrame {
     private UserSettings userSettings;
+    private NonEditableTableModel model;
     
     private ReportLoader reportLoader;
     /**
@@ -39,7 +50,12 @@ public class MainWindow extends javax.swing.JFrame {
     public MainWindow() {
         initComponents();
         userSettings = new UserSettings("defaultPassword");
+        styleButtons(jButton1, jButton2, jButton3, jButton4, jButton5, jButton6);
         postInitSetup();
+        String[] columns = {"ID", "Type"};
+        model = new NonEditableTableModel();
+        model.setColumnIdentifiers(columns);
+        setTabIcons();
     }
 
     /**
@@ -53,7 +69,6 @@ public class MainWindow extends javax.swing.JFrame {
 
         filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 5));
         jMainPanel = new javax.swing.JPanel();
-        btnRefresh = new javax.swing.JButton();
         jNoLandHoldingPanel = new javax.swing.JPanel();
         Title = new javax.swing.JLabel();
         jButton1 = new javax.swing.JButton();
@@ -65,11 +80,15 @@ public class MainWindow extends javax.swing.JFrame {
         jPanel4 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
         jPanel6 = new javax.swing.JPanel();
+        jTabbedPane = new javax.swing.JTabbedPane();
         jReportPanel = new javax.swing.JPanel();
         jReportScrollPane = new javax.swing.JScrollPane();
         jTableReports = new javax.swing.JTable();
+        jPrintReportPanel = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
+        jPanel1 = new javax.swing.JPanel();
+        btnRefresh = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         jMenu2 = new javax.swing.JMenu();
@@ -77,8 +96,6 @@ public class MainWindow extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setPreferredSize(new java.awt.Dimension(1800, 1000));
-
-        btnRefresh.setText("Refresh");
 
         Title.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
         Title.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -109,13 +126,16 @@ public class MainWindow extends javax.swing.JFrame {
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jNoLandHoldingPanelLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jNoLandHoldingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jButton6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(Title, javax.swing.GroupLayout.DEFAULT_SIZE, 242, Short.MAX_VALUE))
+                    .addComponent(Title, javax.swing.GroupLayout.DEFAULT_SIZE, 242, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jNoLandHoldingPanelLayout.createSequentialGroup()
+                        .addGroup(jNoLandHoldingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addComponent(jButton6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jButton5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jButton4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jButton3, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jButton2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jButton1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jNoLandHoldingPanelLayout.setVerticalGroup(
@@ -177,16 +197,13 @@ public class MainWindow extends javax.swing.JFrame {
             jMainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jMainPanelLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jMainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jMainPanelLayout.createSequentialGroup()
-                        .addComponent(jNoLandHoldingPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(btnRefresh))
+                .addComponent(jNoLandHoldingPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jMainPanelLayout.setVerticalGroup(
@@ -198,9 +215,7 @@ public class MainWindow extends javax.swing.JFrame {
                     .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jNoLandHoldingPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btnRefresh)
-                .addContainerGap())
+                .addGap(35, 35, 35))
         );
 
         jTableReports.setModel(new javax.swing.table.DefaultTableModel(
@@ -222,16 +237,31 @@ public class MainWindow extends javax.swing.JFrame {
             jReportPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jReportPanelLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jReportScrollPane)
+                .addComponent(jReportScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 1052, Short.MAX_VALUE)
                 .addContainerGap())
         );
         jReportPanelLayout.setVerticalGroup(
             jReportPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jReportPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jReportScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 396, Short.MAX_VALUE)
+                .addGap(57, 57, 57)
+                .addComponent(jReportScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 545, Short.MAX_VALUE)
                 .addContainerGap())
         );
+
+        jTabbedPane.addTab("Certificates", jReportPanel);
+
+        javax.swing.GroupLayout jPrintReportPanelLayout = new javax.swing.GroupLayout(jPrintReportPanel);
+        jPrintReportPanel.setLayout(jPrintReportPanelLayout);
+        jPrintReportPanelLayout.setHorizontalGroup(
+            jPrintReportPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 1064, Short.MAX_VALUE)
+        );
+        jPrintReportPanelLayout.setVerticalGroup(
+            jPrintReportPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 608, Short.MAX_VALUE)
+        );
+
+        jTabbedPane.addTab("Report", jPrintReportPanel);
 
         jLabel1.setText("jLabel1");
 
@@ -249,6 +279,25 @@ public class MainWindow extends javax.swing.JFrame {
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jLabel1)
+                .addContainerGap())
+        );
+
+        btnRefresh.setText("Refresh");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnRefresh)
+                .addContainerGap())
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnRefresh)
                 .addContainerGap())
         );
 
@@ -270,9 +319,10 @@ public class MainWindow extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jReportPanel, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jTabbedPane, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(jMainPanel, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -281,8 +331,10 @@ public class MainWindow extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(jMainPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jReportPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 282, Short.MAX_VALUE)
+                .addComponent(jTabbedPane)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -299,6 +351,10 @@ public class MainWindow extends javax.swing.JFrame {
     private void postInitSetup() {
         
 	setTitle("Assessor Certification");
+        
+        ImageIcon icon = new ImageIcon(getClass().getResource("/resources/icon/ico.png"));
+        setIconImage(icon.getImage());
+        
         // Configure table with fresh model immediately
         NonEditableTableModel cleanModel = new NonEditableTableModel();
         jTableReports.setModel(cleanModel);
@@ -316,6 +372,44 @@ public class MainWindow extends javax.swing.JFrame {
             public void onLoadComplete() {
                 btnRefresh.setEnabled(true);
                 configureColumnRenderers(); // ADD THIS LINE
+                
+//                SwingUtilities.invokeLater(() -> {
+//                    try {
+//                        TableColumnModel columnModel = jTableReports.getColumnModel();
+//                        int patientColumnIndex = columnModel.getColumnIndex("PATIENT"); // Case-sensitive!
+//                        columnModel.moveColumn(patientColumnIndex, 1);
+//                        int typeColumnIndex = columnModel.getColumnIndex("Type");
+//                        columnModel.moveColumn(typeColumnIndex, 1);
+//                    } catch (IllegalArgumentException e) {
+//                        System.out.println("Column 'patient' not found after loading data.");
+//                    }
+//                });
+//                for (int i = 0; i < jTableReports.getColumnModel().getColumnCount(); i++) {
+//                    System.out.println("Column " + i + ": " + jTableReports.getColumnModel().getColumn(i).getHeaderValue());
+//                }
+                // Add debug output
+                System.out.println("Columns in model:");
+                for (int i = 0; i < model.getColumnCount(); i++) {
+                    System.out.println(i + ": " + model.getColumnName(i));
+                }
+
+                System.out.println("First 5 rows:");
+                for (int row = 0; row < Math.min(5, model.getRowCount()); row++) {
+                    System.out.println(
+                        "ID: " + model.getValueAt(row, 0) + 
+                        " | Type: " + model.getValueAt(row, 1)
+                    );
+                }
+                try {
+                    jTableReports.getColumn("Type");
+                    jTableReports.getColumn("ID");
+                } catch (IllegalArgumentException e) {
+                    JOptionPane.showMessageDialog(null,
+                        "Critical error: Required columns not found!\n" +
+                        "Please check database connection and schema.",
+                        "Configuration Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
             }
 
             @Override
@@ -335,6 +429,79 @@ public class MainWindow extends javax.swing.JFrame {
         reportLoader.loadData();
         
         setupUserButton();
+        
+        // Mouse click listener
+        jTableReports.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (evt.getClickCount() == 2) {
+                    handleReportGeneration();
+                }
+            }
+        });
+
+        // Key press listener
+        jTableReports.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                    handleReportGeneration();
+                }
+            }
+        });
+    }
+    
+    private void setTabIcons() {
+        // Load SVG icons
+        FlatSVGIcon certificateIcon = new FlatSVGIcon("assessor/ui/icons/certificate.svg", 16, 16);
+        FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 16, 16);
+
+        // Assign icons to tabs
+        jTabbedPane.setIconAt(jTabbedPane.indexOfComponent(jPrintReportPanel), reportIcon);
+        jTabbedPane.setIconAt(jTabbedPane.indexOfComponent(jReportPanel), certificateIcon);
+
+    }
+    
+    private void handleReportGeneration() {
+        int row = jTableReports.getSelectedRow();
+        if (row == -1) return;
+
+        try {
+            // Get raw values
+            int idColumn = jTableReports.getColumn("ID").getModelIndex();
+            int typeColumn = jTableReports.getColumn("Type").getModelIndex();
+
+            Object rawId = jTableReports.getValueAt(row, idColumn);
+            Object rawType = jTableReports.getValueAt(row, typeColumn);
+
+            // Validate and convert
+            List<Integer> selectedIDs = new ArrayList<>();
+            try {
+                selectedIDs.add(Integer.parseInt(rawId.toString()));
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "Invalid ID format", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String reportType = rawType != null ? rawType.toString().trim() : "unknown";
+
+            // Prepare parameters
+            Map<String, Object> params = new HashMap<>();
+            params.put("SelectedIDs", selectedIDs);
+            params.put("ReportType", reportType);  // Direct type from database
+
+            GenerateReport.generateReport(
+                params,
+                reportType + " Report",  // Title for display
+                "assessor/ui/icons/printer.svg"
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, 
+                "Error generating report: " + e.getMessage(), 
+                "Generation Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void setupUserButton() {
@@ -532,6 +699,47 @@ public class MainWindow extends javax.swing.JFrame {
                     column.setMaxWidth(50);
                     column.setMinWidth(50);
                     break;
+                case "patient":
+                    column.setHeaderValue("PATIENT");
+                    column.setPreferredWidth(200);
+                    column.setMaxWidth(200);
+                    column.setMinWidth(200);
+                    break;
+                case "relationship":
+                    column.setPreferredWidth(80);
+                    column.setMaxWidth(80);
+                    column.setMinWidth(80);
+                    break;
+                case "hospitaladdress":
+                    column.setHeaderValue("Hospital Address");
+                    column.setPreferredWidth(250);
+                    column.setMaxWidth(250);
+                    column.setMinWidth(250);
+                    break;
+                case "maritalstatus":
+                    column.setHeaderValue("Marital Status");
+                    column.setPreferredWidth(90);
+                    column.setMaxWidth(90);
+                    column.setMinWidth(90);
+                    break;
+                case "parentguardian":
+                    column.setHeaderValue("Parent");
+                    column.setPreferredWidth(120);
+                    column.setMaxWidth(200);
+                    column.setMinWidth(200);
+                    break;
+                case "parentguardian2":
+                    column.setHeaderValue("Parent");
+                    column.setPreferredWidth(200);
+                    column.setMaxWidth(200);
+                    column.setMinWidth(200);
+                    break;
+                case "parentsexifsingle":
+                    column.setPreferredWidth(0);
+                    column.setMaxWidth(0);
+                    column.setMinWidth(0);
+                    column.setResizable(false);
+                    break;
                 case "certificationdate":
                     column.setHeaderValue("Certification Date");
                     column.setCellRenderer(new DateRenderer());
@@ -553,11 +761,37 @@ public class MainWindow extends javax.swing.JFrame {
                     column.setMaxWidth(200);
                     column.setMinWidth(200);
                     break;
-                case "amount":
+                case "type":
+                    column.setPreferredWidth(100);
+                    column.setMaxWidth(100);
+                    column.setMinWidth(100);
+                    break;
+                case "amountpaid":
+                    column.setHeaderValue("Amount Paid");
                     column.setCellRenderer(new CurrencyRenderer());
                     column.setPreferredWidth(80);  // Currency needs space for symbols/commas
                     column.setMaxWidth(80);
                     column.setMinWidth(80);
+                    break;
+                case "receiptno":
+                    column.setHeaderValue("Receipt No.");
+                    column.setCellRenderer(new RedTextRenderer());
+                    column.setPreferredWidth(80);  // Currency needs space for symbols/commas
+                    column.setMaxWidth(80);
+                    column.setMinWidth(80);
+                    break;
+                case "receiptdateissued":
+                    column.setHeaderValue("Receipt Date Issued");
+                    column.setCellRenderer(new DateRenderer());
+                    column.setPreferredWidth(120);  // Currency needs space for symbols/commas
+                    column.setMaxWidth(120);
+                    column.setMinWidth(120);
+                    break;
+                case "placeissued":
+                    column.setHeaderValue("Place Issued");
+                    column.setPreferredWidth(120);  // Currency needs space for symbols/commas
+                    column.setMaxWidth(120);
+                    column.setMinWidth(120);
                     break;
                     
                 default:
@@ -566,6 +800,7 @@ public class MainWindow extends javax.swing.JFrame {
                     column.setMinWidth(200);
             }
         }
+        jTableReports.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     }
     
     public static void main(String args[]) {
@@ -591,13 +826,54 @@ public class MainWindow extends javax.swing.JFrame {
             java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
-
+        
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new MainWindow().setVisible(true);
             }
         });
+    }
+    
+    private void styleButtons(JButton... buttons) {
+        for (JButton button : buttons) {
+            button.setBorderPainted(false);
+            button.setContentAreaFilled(false);
+            button.setFocusPainted(false);
+            button.setForeground(Color.BLACK);
+            button.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            
+            button.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    if (!button.getModel().isPressed()) {
+                        button.setForeground(new Color(0, 100, 200));
+                    }
+                }
+                
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    if (!button.getModel().isPressed()) {
+                        button.setForeground(Color.BLACK);
+                    }
+                }
+                
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    button.setForeground(Color.BLACK);
+                }
+                
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    //Check if mouse is still over button after click
+                    if (button.contains(e.getPoint())) {
+                        button.setForeground(new Color(0, 100, 200));
+                    } else {
+                        button.setForeground(Color.BLACK);
+                    }
+                }
+            });
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -617,12 +893,15 @@ public class MainWindow extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu3;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jNoLandHoldingPanel;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
+    private javax.swing.JPanel jPrintReportPanel;
     private javax.swing.JPanel jReportPanel;
     private javax.swing.JScrollPane jReportScrollPane;
+    private javax.swing.JTabbedPane jTabbedPane;
     private javax.swing.JTable jTableReports;
     // End of variables declaration//GEN-END:variables
 }
