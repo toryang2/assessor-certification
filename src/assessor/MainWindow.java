@@ -16,6 +16,7 @@ import assessor.util.ReportLoader.LoadCallbacks;
 import assessor.util.TableRightRenderer;
 import assessor.util.TimeRenderer;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.formdev.flatlaf.extras.FlatSVGUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -57,7 +58,7 @@ public class MainWindow extends javax.swing.JFrame {
     public MainWindow() {
         initComponents();
         userSettings = new UserSettings("defaultPassword");
-        styleButtons(jButton1, jButton2, jButton3, jButton4, jButton5, jButton6);
+        styleButtons(btnHospitalization, btnBailBond, btnNoLandHolding, btnPhilHealth, btnScholarship);
         postInitSetup();
         String[] columns = {"ID", "Type"};
         model = new NonEditableTableModel();
@@ -78,12 +79,11 @@ public class MainWindow extends javax.swing.JFrame {
         jMainPanel = new javax.swing.JPanel();
         jNoLandHoldingPanel = new javax.swing.JPanel();
         Title = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
-        jButton4 = new javax.swing.JButton();
-        jButton5 = new javax.swing.JButton();
-        jButton6 = new javax.swing.JButton();
+        btnHospitalization = new javax.swing.JButton();
+        btnBailBond = new javax.swing.JButton();
+        btnNoLandHolding = new javax.swing.JButton();
+        btnPhilHealth = new javax.swing.JButton();
+        btnScholarship = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
         jPanel6 = new javax.swing.JPanel();
@@ -92,6 +92,7 @@ public class MainWindow extends javax.swing.JFrame {
         jReportScrollPane = new javax.swing.JScrollPane();
         jTableReports = new javax.swing.JTable();
         jPrintReportPanel = new javax.swing.JPanel();
+        jLabel2 = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
@@ -108,23 +109,20 @@ public class MainWindow extends javax.swing.JFrame {
         Title.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         Title.setText("NO LANDHOLDING");
 
-        jButton1.setText("jButton1");
-        jButton1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btnHospitalization.setText("Hospitalization");
+        btnHospitalization.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
-        jButton2.setText("jButton2");
-        jButton2.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btnBailBond.setText("Bail Bond");
+        btnBailBond.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
-        jButton3.setText("jButton3");
-        jButton3.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btnNoLandHolding.setText("No Land Holding");
+        btnNoLandHolding.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
-        jButton4.setText("jButton4");
-        jButton4.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btnPhilHealth.setText("PhilHealth");
+        btnPhilHealth.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
-        jButton5.setText("jButton5");
-        jButton5.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-
-        jButton6.setText("jButton6");
-        jButton6.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btnScholarship.setText("Scholarship");
+        btnScholarship.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 
         javax.swing.GroupLayout jNoLandHoldingPanelLayout = new javax.swing.GroupLayout(jNoLandHoldingPanel);
         jNoLandHoldingPanel.setLayout(jNoLandHoldingPanelLayout);
@@ -136,12 +134,11 @@ public class MainWindow extends javax.swing.JFrame {
                     .addComponent(Title, javax.swing.GroupLayout.DEFAULT_SIZE, 242, Short.MAX_VALUE)
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jNoLandHoldingPanelLayout.createSequentialGroup()
                         .addGroup(jNoLandHoldingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addComponent(jButton6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton3, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(btnScholarship, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btnPhilHealth, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btnNoLandHolding, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btnBailBond, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btnHospitalization, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
@@ -151,17 +148,15 @@ public class MainWindow extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(Title)
                 .addGap(18, 18, 18)
-                .addComponent(jButton1)
+                .addComponent(btnHospitalization)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton2)
+                .addComponent(btnBailBond)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton3)
+                .addComponent(btnNoLandHolding)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton4)
+                .addComponent(btnPhilHealth)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton5)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton6)
+                .addComponent(btnScholarship)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -221,8 +216,7 @@ public class MainWindow extends javax.swing.JFrame {
                     .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jNoLandHoldingPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(35, 35, 35))
+                    .addComponent(jNoLandHoldingPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
 
         jTableReports.setModel(new javax.swing.table.DefaultTableModel(
@@ -254,21 +248,29 @@ public class MainWindow extends javax.swing.JFrame {
             jReportPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jReportPanelLayout.createSequentialGroup()
                 .addGap(57, 57, 57)
-                .addComponent(jReportScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 545, Short.MAX_VALUE)
+                .addComponent(jReportScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 574, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
         jTabbedPane.addTab("Certificates", jReportPanel);
 
+        jLabel2.setText("jLabel2");
+
         javax.swing.GroupLayout jPrintReportPanelLayout = new javax.swing.GroupLayout(jPrintReportPanel);
         jPrintReportPanel.setLayout(jPrintReportPanelLayout);
         jPrintReportPanelLayout.setHorizontalGroup(
             jPrintReportPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1064, Short.MAX_VALUE)
+            .addGroup(jPrintReportPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel2)
+                .addContainerGap(1021, Short.MAX_VALUE))
         );
         jPrintReportPanelLayout.setVerticalGroup(
             jPrintReportPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 608, Short.MAX_VALUE)
+            .addGroup(jPrintReportPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel2)
+                .addContainerGap(615, Short.MAX_VALUE))
         );
 
         jTabbedPane.addTab("Report", jPrintReportPanel);
@@ -341,7 +343,7 @@ public class MainWindow extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(jMainPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jTabbedPane)
+                .addComponent(jTabbedPane, javax.swing.GroupLayout.DEFAULT_SIZE, 672, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -362,8 +364,10 @@ public class MainWindow extends javax.swing.JFrame {
         
 	setTitle("Assessor Certification");
         
-        ImageIcon icon = new ImageIcon(getClass().getResource("/resources/icon/ico.png"));
-        setIconImage(icon.getImage());
+//        ImageIcon icon = new ImageIcon(getClass().getResource("/resources/icon/ico.png"));
+//        setIconImage(icon.getImage());
+        
+        setIconImages( FlatSVGUtils.createWindowIconImages( "/resources/icon/favicon.svg" ) );
         
         // Configure table with fresh model immediately
         NonEditableTableModel cleanModel = new NonEditableTableModel();
@@ -578,7 +582,7 @@ public void showPrintReportTab() {
     // Add tab if not present
     if (!tabExists(jPrintReportPanel)) {
         jTabbedPane.addTab("Report", jPrintReportPanel);
-        FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 25, 25);
+        FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 16, 16);
         setTabComponent(jPrintReportPanel, "Report", reportIcon, true);
     }
 
@@ -999,15 +1003,15 @@ private boolean tabExists(JPanel panel) {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel Title;
+    private javax.swing.JButton btnBailBond;
+    private javax.swing.JButton btnHospitalization;
+    private javax.swing.JButton btnNoLandHolding;
+    private javax.swing.JButton btnPhilHealth;
     private javax.swing.JButton btnRefresh;
+    private javax.swing.JButton btnScholarship;
     private javax.swing.Box.Filler filler1;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jMainPanel;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;

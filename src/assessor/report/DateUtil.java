@@ -6,21 +6,10 @@ import java.util.Calendar;
 import java.util.Date;
 
 public class DateUtil {
-    public static String formatCertificationDate(String dateString) {
-        if (dateString == null || dateString.trim().isEmpty()) return "";
-
-        SimpleDateFormat sdfParse = new SimpleDateFormat("MM-dd-yyyy");
-        sdfParse.setLenient(false); // Strict validation
-
-        try {
-            Date date = sdfParse.parse(dateString);
-            return formatCertificationDate(date);
-        } catch (ParseException e) {
-            return "[INVALID DATE: " + dateString + "]";
-        }
-    }
-
-    private static String formatCertificationDate(Date date) {
+    // Main method for Date objects (SQL DATE type)
+    public static String formatCertificationDate(Date date) {
+        if (date == null) return "";
+        
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
 
@@ -34,6 +23,21 @@ public class DateUtil {
                 month,
                 year
         );
+    }
+
+    // Overloaded method for string dates (backward compatibility)
+    public static String formatCertificationDate(String dateString) {
+        if (dateString == null || dateString.trim().isEmpty()) return "";
+
+        SimpleDateFormat sdfParse = new SimpleDateFormat("yyyy-MM-dd"); // SQL date format
+        sdfParse.setLenient(false);
+
+        try {
+            Date date = sdfParse.parse(dateString);
+            return formatCertificationDate(date);
+        } catch (ParseException e) {
+            return "[INVALID DATE: " + dateString + "]";
+        }
     }
 
     private static String getOrdinalSuffix(int day) {

@@ -26,6 +26,12 @@
 	`MaritalStatus`,
 	`ParentGuardian`,
 	`ParentGuardian2`,
+    /* New computed column */
+    CASE 
+        WHEN `ParentGuardian2` IS NOT NULL AND TRIM(`ParentGuardian2`) <> ''
+        THEN CONCAT(COALESCE(`ParentGuardian`, ''), ' AND ', `ParentGuardian2`)
+        ELSE COALESCE(`ParentGuardian`, '')
+    END AS `ParentDisplay`,
 	`ParentSexIfSingle`,
 	`Barangay`,
 	`Patient`,
@@ -51,6 +57,7 @@ WHERE $X{IN, id, SelectedIDs}]]></query>
 	</field>
 	<field name="ParentGuardian" class="java.lang.String"/>
 	<field name="ParentGuardian2" class="java.lang.String"/>
+	<field name="ParentDisplay" class="java.lang.String"/>
 	<field name="ParentSexIfSingle" class="java.lang.String"/>
 	<field name="Barangay" class="java.lang.String"/>
 	<field name="Patient" class="java.lang.String"/>
@@ -76,10 +83,10 @@ PROVINCE OF BUKIDNON
 Municipality of Kitaotao]]></text>
 			</element>
 			<element kind="image" uuid="32d31038-a3a6-463a-bcf8-f41d01a38add" x="0" y="10" width="50" height="50">
-				<expression><![CDATA["Z:/LOGO/kitaotao.png"]]></expression>
+				<expression><![CDATA["resources/jasper/kitaotao.png"]]></expression>
 			</element>
 			<element kind="image" uuid="50c18bab-3416-4296-873a-103a70967c2f" x="393" y="10" width="50" height="50">
-				<expression><![CDATA["Z:/LOGO/bagongpilipinas.png"]]></expression>
+				<expression><![CDATA["resources/jasper/bagongpilipinas.png"]]></expression>
 			</element>
 			<element kind="line" uuid="d8fd2dd8-f9a7-45a9-99fb-d677a8574455" x="0" y="65" width="443" height="2"/>
 		</element>
@@ -102,7 +109,7 @@ Municipality of Kitaotao]]></text>
 (assessor.report.StatusUtil.getParentStatus($F{MaritalStatus}).isEmpty() 
     ? "" 
     : assessor.report.StatusUtil.getParentStatus($F{MaritalStatus}) + " "
-) + " " +  $F{ParentGuardian} + "</style> " + 
+) + " " +  $F{ParentDisplay} + "</style> " + 
 " of Barangay " + $F{Barangay} +  
 " this municipality has no declared real property ownership such as building, land, and machinery as far as our record is concerned.\n\n" +
 
@@ -115,8 +122,8 @@ Municipality of Kitaotao]]></text>
 "  <style isBold=\"true\">" + $F{Patient} + " (Patient)</style> at " + $F{Hospital} + " – " + $F{HospitalAddress} + ".\n\n" +
 
 "Done and Given this " + 
-(($F{CertificationDate} != null) ?  // Changed condition
-    new SimpleDateFormat("MMM dd, yyyy").format($F{CertificationDate}) : 
+( ($F{CertificationDate} != null) ? 
+    assessor.report.DateUtil.formatCertificationDate($F{CertificationDate}) : 
     "[DATE MISSING]"
 ) +
 " at the Office of the Municipal Assessor, Poblacion, Kitaotao, Bukidnon."
@@ -153,7 +160,11 @@ Prepared By]]></text>
 				<expression><![CDATA[": " + ($F{PlaceIssued} == null ? "" : $F{PlaceIssued})]]></expression>
 			</element>
 			<element kind="textField" uuid="24d06479-0959-4133-b63d-620f92afde50" x="70" y="426" width="373" height="14" fontName="Times New Roman" fontSize="12.0" blankWhenNull="true">
-				<expression><![CDATA[": " + $F{userInitials} + "  $F{CertificationDate} "  + " @ " + $F{CertificationTime}]]></expression>
+				<expression><![CDATA[": " + $F{userInitials} +" " +  $F{CertificationDate}   + " @ " + 
+( ($F{CertificationTime} != null) ? 
+    new java.text.SimpleDateFormat("hh:mm a").format($F{CertificationTime}) : 
+    "[TIME MISSING]"
+)]]></expression>
 			</element>
 		</band>
 	</detail>

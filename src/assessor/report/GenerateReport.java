@@ -10,6 +10,9 @@ import net.sf.jasperreports.view.JasperViewer;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import javax.swing.*;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -86,7 +89,7 @@ public class GenerateReport {
 
         // 3. Build template path
         String templatePath = String.format(
-            "/assessor/report/jasper/%s_default.jrxml",
+            "/assessor/report/jasper/%s.jrxml",
             baseType
         );
 
@@ -100,7 +103,6 @@ public class GenerateReport {
         }
         return stream;
     }
-
 
     private static JasperPrint compileAndFill(InputStream jrxml, 
                                             Map<String, Object> params,
@@ -168,8 +170,9 @@ public class GenerateReport {
         
         // Add JRViewer component
         JRViewer viewer = new JRViewer(print);
-        container.add(toolbar, BorderLayout.NORTH);
+//      container.add(toolbar, BorderLayout.NORTH);
         container.add(viewer, BorderLayout.CENTER);
+        viewer.setZoomRatio(0.75f);
         
         return container;
     }
