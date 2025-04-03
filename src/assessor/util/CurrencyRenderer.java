@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package assessor.util;
 
 import java.text.DecimalFormatSymbols;
@@ -10,10 +6,6 @@ import java.util.Locale;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 
-/**
- *
- * @author Toryang
- */
 public class CurrencyRenderer extends DefaultTableCellRenderer {
     private final NumberFormat currencyFormat;
 
@@ -22,15 +14,22 @@ public class CurrencyRenderer extends DefaultTableCellRenderer {
         Locale phLocale = new Locale("en", "PH");
         currencyFormat = NumberFormat.getCurrencyInstance(phLocale);
         
-        DecimalFormatSymbols symbols = ((java.text.DecimalFormat)currencyFormat).getDecimalFormatSymbols();
-        symbols.setCurrencySymbol("₱");
-        ((java.text.DecimalFormat)currencyFormat).setDecimalFormatSymbols(symbols);
+        // Customize currency symbol and formatting
+        DecimalFormatSymbols symbols = ((java.text.DecimalFormat) currencyFormat).getDecimalFormatSymbols();
+        symbols.setCurrencySymbol("");
+        symbols.setGroupingSeparator(','); // Explicitly set grouping separator
+        symbols.setDecimalSeparator('.');  // Explicitly set decimal separator
+        ((java.text.DecimalFormat) currencyFormat).setDecimalFormatSymbols(symbols);
+        
+        // Ensure grouping is enabled (commas for thousands)
+        currencyFormat.setGroupingUsed(true);
     }
 
     @Override
     protected void setValue(Object value) {
         if (value instanceof Number) {
-            setText(currencyFormat.format(value).replace("PHP", "₱")); // Extra safeguard
+            // Format the number with currency symbol, commas, and two decimal places
+            setText(currencyFormat.format(value));
         } else {
             super.setValue(value);
         }

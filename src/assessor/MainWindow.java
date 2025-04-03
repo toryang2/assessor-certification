@@ -4,6 +4,7 @@
  */
 package assessor;
 
+import assessor.input.HospitalizationForm;
 import assessor.report.GenerateReport;
 import assessor.ui.UserSettings;
 import assessor.util.CurrencyRenderer;
@@ -27,11 +28,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -64,6 +67,7 @@ public class MainWindow extends javax.swing.JFrame {
         model = new NonEditableTableModel();
         model.setColumnIdentifiers(columns);
         setTabIcons();
+        setupButtonActions();
     }
 
     /**
@@ -464,7 +468,29 @@ public class MainWindow extends javax.swing.JFrame {
             }
         });
     }
+    
+    private void setupButtonActions() {
+        btnHospitalization.addActionListener(e -> openHospitalizationForm());
+    }
+    
+    private void openHospitalizationForm() {
+        HospitalizationForm form = new HospitalizationForm();
         
+        // Set callback for save completion
+        form.setSaveCallback(success -> {
+            if(success) {
+                reportLoader.loadData();
+                handleReportGeneration();
+                JOptionPane.showMessageDialog(this, 
+                    "Record saved successfully!", 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        
+        form.setLocationRelativeTo(this);
+        form.setVisible(true);
+    }
     
     public void setTabIcons() {
     // Load SVG icons
@@ -479,49 +505,49 @@ public class MainWindow extends javax.swing.JFrame {
     jTabbedPane.remove(jPrintReportPanel); // Hide tab by default
 }
 
-// Custom method for setting tab components
-private void setTabComponent(JPanel panel, String title, FlatSVGIcon icon, boolean hasCloseButton) {
-    int index = jTabbedPane.indexOfComponent(panel);
-    if (index == -1) return; // Ensure tab exists
+    // Custom method for setting tab components
+    private void setTabComponent(JPanel panel, String title, FlatSVGIcon icon, boolean hasCloseButton) {
+        int index = jTabbedPane.indexOfComponent(panel);
+        if (index == -1) return; // Ensure tab exists
 
-    // Panel for tab (title + icon + optional close button)
-    JPanel tabPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-    tabPanel.setOpaque(false);
+        // Panel for tab (title + icon + optional close button)
+        JPanel tabPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        tabPanel.setOpaque(false);
 
-    // Label for icon + title
-    JLabel titleLabel = new JLabel(title, icon, JLabel.LEFT);
-    tabPanel.add(titleLabel);
+        // Label for icon + title
+        JLabel titleLabel = new JLabel(title, icon, JLabel.LEFT);
+        tabPanel.add(titleLabel);
 
-    // Add close button only if allowed
-    if (hasCloseButton) {
-        JButton closeButton = new JButton(new FlatSVGIcon("assessor/ui/icons/close.svg", 25, 25));
-        closeButton.setBorderPainted(false);
-        closeButton.setContentAreaFilled(false);
-        closeButton.setFocusable(false);
-        closeButton.setPreferredSize(new Dimension(16, 16));
+        // Add close button only if allowed
+        if (hasCloseButton) {
+            JButton closeButton = new JButton(new FlatSVGIcon("assessor/ui/icons/close.svg", 25, 25));
+            closeButton.setBorderPainted(false);
+            closeButton.setContentAreaFilled(false);
+            closeButton.setFocusable(false);
+            closeButton.setPreferredSize(new Dimension(16, 16));
 
-        // Remove tab on button click
-        closeButton.addActionListener(e -> {
-            int tabIndex = jTabbedPane.indexOfComponent(panel);
-            if (tabIndex != -1) {
-                jTabbedPane.remove(tabIndex);
-            }
-        });
+            // Remove tab on button click
+            closeButton.addActionListener(e -> {
+                int tabIndex = jTabbedPane.indexOfComponent(panel);
+                if (tabIndex != -1) {
+                    jTabbedPane.remove(tabIndex);
+                }
+            });
 
-        tabPanel.add(closeButton);
+            tabPanel.add(closeButton);
+        }
+
+        // Set custom tab
+        jTabbedPane.setTabComponentAt(index, tabPanel);
     }
 
-    // Set custom tab
-    jTabbedPane.setTabComponentAt(index, tabPanel);
-}
-
-// Method to show jPrintReportPanel when needed
-public void showPrintReportTab() {
-    if (jTabbedPane.indexOfComponent(jPrintReportPanel) == -1) {
-        jTabbedPane.addTab("Report", null, jPrintReportPanel);
-        setTabIcons(); // Reapply icons and close buttons
+    // Method to show jPrintReportPanel when needed
+    public void showPrintReportTab() {
+        if (jTabbedPane.indexOfComponent(jPrintReportPanel) == -1) {
+            jTabbedPane.addTab("Report", null, jPrintReportPanel);
+            setTabIcons(); // Reapply icons and close buttons
+        }
     }
-}
 
     private void handleReportGeneration() {
         int row = jTableReports.getSelectedRow();
@@ -555,13 +581,13 @@ public void showPrintReportTab() {
 //                params,
 //                reportType + " Report",  // Title for display
 //                "assessor/ui/icons/printer.svg"
-                    
+
             JPanel reportViewer = GenerateReport.generateReportPanel(
             params,
             reportType + " Report",
             "/assessor/ui/icons/printer.png"
             );
-            
+
             configureReportTab(reportViewer);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, 
@@ -570,34 +596,34 @@ public void showPrintReportTab() {
                 JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     private void configureReportTab(JPanel reportContent) {
-    // Clear previous content
-    jPrintReportPanel.removeAll();
-    jPrintReportPanel.setLayout(new BorderLayout());
-    jPrintReportPanel.add(reportContent, BorderLayout.CENTER);
-    jPrintReportPanel.revalidate();
-    jPrintReportPanel.repaint();
+        // Clear previous content
+        jPrintReportPanel.removeAll();
+        jPrintReportPanel.setLayout(new BorderLayout());
+        jPrintReportPanel.add(reportContent, BorderLayout.CENTER);
+        jPrintReportPanel.revalidate();
+        jPrintReportPanel.repaint();
 
-    // Add tab if not present
-    if (!tabExists(jPrintReportPanel)) {
-        jTabbedPane.addTab("Report", jPrintReportPanel);
-        FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 16, 16);
-        setTabComponent(jPrintReportPanel, "Report", reportIcon, true);
-    }
-
-    // Switch to report tab
-    jTabbedPane.setSelectedComponent(jPrintReportPanel);
-}
-
-private boolean tabExists(JPanel panel) {
-    for (int i = 0; i < jTabbedPane.getTabCount(); i++) {
-        if (jTabbedPane.getComponentAt(i) == panel) {
-            return true;
+        // Add tab if not present
+        if (!tabExists(jPrintReportPanel)) {
+            jTabbedPane.addTab("Report", jPrintReportPanel);
+            FlatSVGIcon reportIcon = new FlatSVGIcon("assessor/ui/icons/printer.svg", 16, 16);
+            setTabComponent(jPrintReportPanel, "Report", reportIcon, true);
         }
+
+        // Switch to report tab
+        jTabbedPane.setSelectedComponent(jPrintReportPanel);
     }
-    return false;
-}
+
+    private boolean tabExists(JPanel panel) {
+        for (int i = 0; i < jTabbedPane.getTabCount(); i++) {
+            if (jTabbedPane.getComponentAt(i) == panel) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     private void setupUserButton() {
         JMenuBar menuBar = this.jMenuBar1;
