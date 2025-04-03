@@ -5,6 +5,7 @@
 package assessor;
 
 import assessor.input.HospitalizationForm;
+import assessor.input.Test;
 import assessor.report.GenerateReport;
 import assessor.ui.UserSettings;
 import assessor.util.CurrencyRenderer;
@@ -471,6 +472,14 @@ public class MainWindow extends javax.swing.JFrame {
     
     private void setupButtonActions() {
         btnHospitalization.addActionListener(e -> openHospitalizationForm());
+        btnBailBond.addActionListener(e -> openTest());
+    }
+    
+    private void openTest() {
+        Test form = new Test();
+        
+        form.setLocationRelativeTo(this);
+        form.setVisible(true);
     }
     
     private void openHospitalizationForm() {
