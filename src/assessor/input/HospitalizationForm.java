@@ -199,6 +199,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
                     // Handle empty case
                     if (text.isEmpty()) {
                         txtAmount.setText("₱");
+                        
                         return;
                     }
 
@@ -206,7 +207,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
                     int decimalIndex = text.indexOf('.');
                     String integerPart = decimalIndex != -1 ? text.substring(0, decimalIndex) : text;
                     String decimalPart = decimalIndex != -1 ? 
-                        "." + text.substring(decimalIndex + 1).replaceAll("\\.", "") : "";
+                        "." + text.substring(decimalIndex + 1).replaceAll("\\.00", "") : "";
 
                     // Format integer part with commas
                     if (!integerPart.isEmpty()) {
@@ -273,7 +274,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
     
     private void handleAmountFocusGained() {
         if (txtAmount.getText().equals("₱0.00")) {
-            txtAmount.setText("₱");
+            txtAmount.setText("₱.00");
             txtAmount.setCaretPosition(1);
         }
     }
@@ -306,7 +307,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
             
             return new BigDecimal(cleaned).doubleValue();
         } catch (NumberFormatException | ArithmeticException e) {
-            showValidationError("Invalid amount format");
+//            showValidationError("Invalid amount format");
             throw new NumberFormatException();
         }
     }
