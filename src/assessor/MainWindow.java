@@ -5,7 +5,6 @@
 package assessor;
 
 import assessor.input.HospitalizationForm;
-import assessor.input.Test;
 import assessor.report.GenerateReport;
 import assessor.ui.UserSettings;
 import assessor.util.CurrencyRenderer;
@@ -35,6 +34,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -56,6 +56,7 @@ public class MainWindow extends javax.swing.JFrame {
     private NonEditableTableModel model;
     
     private ReportLoader reportLoader;
+    private boolean autoGenerateReport = false;
     /**
      * Creates new form MainWindow
      */
@@ -392,6 +393,13 @@ public class MainWindow extends javax.swing.JFrame {
                 btnRefresh.setEnabled(true);
                 configureColumnRenderers(); // ADD THIS LINE
                 
+                
+                if (autoGenerateReport && jTableReports.getRowCount() > 0) {
+                    jTableReports.setRowSelectionInterval(0, 0); // Select first row
+                    handleReportGeneration();
+                    autoGenerateReport = false; // Reset flag
+                }
+                
 //                SwingUtilities.invokeLater(() -> {
 //                    try {
 //                        TableColumnModel columnModel = jTableReports.getColumnModel();
@@ -472,14 +480,6 @@ public class MainWindow extends javax.swing.JFrame {
     
     private void setupButtonActions() {
         btnHospitalization.addActionListener(e -> openHospitalizationForm());
-        btnBailBond.addActionListener(e -> openTest());
-    }
-    
-    private void openTest() {
-        Test form = new Test();
-        
-        form.setLocationRelativeTo(this);
-        form.setVisible(true);
     }
     
     private void openHospitalizationForm() {
@@ -487,13 +487,9 @@ public class MainWindow extends javax.swing.JFrame {
         
         // Set callback for save completion
         form.setSaveCallback(success -> {
-            if(success) {
+            if (success) {
+                autoGenerateReport = true; // Set flag to trigger report after reload
                 reportLoader.loadData();
-                handleReportGeneration();
-                JOptionPane.showMessageDialog(this, 
-                    "Record saved successfully!", 
-                    "Success", 
-                    JOptionPane.INFORMATION_MESSAGE);
             }
         });
         
@@ -562,6 +558,7 @@ public class MainWindow extends javax.swing.JFrame {
         int row = jTableReports.getSelectedRow();
         if (row == -1) return;
 
+        System.out.println("handleReportGeneration called");
         try {
             // Get raw values
             int idColumn = jTableReports.getColumn("ID").getModelIndex();

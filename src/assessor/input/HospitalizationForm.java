@@ -21,12 +21,15 @@ import javax.swing.JTextField;
 import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.util.Set;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
 import javax.swing.text.DocumentFilter;
 import net.miginfocom.swing.MigLayout;
 import raven.datetime.DatePicker;
@@ -40,6 +43,14 @@ import raven.datetime.DateSelectionAble;
 public class HospitalizationForm extends javax.swing.JFrame {
     private Consumer<Boolean> saveCallback;
     private DatePicker datePicker;
+    
+    @Override
+    public void dispose(){
+        if (datePicker !=null) {
+            datePicker.closePopup();
+        }
+        super.dispose();
+    }
 //    private DatePicker receiptDateIssuedPickerUI;
     /**
      * Creates new form Input
@@ -55,6 +66,8 @@ public class HospitalizationForm extends javax.swing.JFrame {
         datePicker.setEditor(receiptDateIssuedPicker);
         datePicker.setDateSelectionMode(DatePicker.DateSelectionMode.SINGLE_DATE_SELECTED);
         datePicker.setDateFormat("MM/dd/yyyy");
+        datePicker.setUsePanelOption(true);
+        datePicker.setCloseAfterSelected(true);
         datePicker.setDateSelectionAble(new DateSelectionAble() {
             @Override
             public boolean isDateSelectedAble(LocalDate localDate) {
@@ -68,7 +81,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
     
     // Set up MigLayout
     contentPane.setLayout(new MigLayout(
-        "debug, insets 20 30 20 30, gap 10 15",
+        "insets 20 30 20 30, gap 10 15",
         // 6-column layout: [labels][field1][field2][labels][field3][fill]
         "[left][50:50:50][100:100:100][left][100:100:100]", 
         "[][][][][][][][][][][]"
@@ -152,74 +165,120 @@ public class HospitalizationForm extends javax.swing.JFrame {
         // Document filter for input validation
         ((AbstractDocument) txtAmount.getDocument()).setDocumentFilter(new DocumentFilter() {
             @Override
-            public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
-                    throws BadLocationException {
-                String newText = fb.getDocument().getText(0, fb.getDocument().getLength()) + text;
-                if (isValid(newText)) {
-                    super.insertString(fb, offset, text, attr);
-                }
+            public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr) 
+                throws BadLocationException {
+                super.insertString(fb, offset, text, attr);
+                SwingUtilities.invokeLater(() -> reformatAmount(fb.getDocument()));
             }
 
             @Override
-            public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
-                String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
-                String newText = currentText.substring(0, offset) + currentText.substring(offset + length);
-                if (isValid(newText)) {
-                    super.remove(fb, offset, length);
-                }
+            public void remove(FilterBypass fb, int offset, int length) 
+                throws BadLocationException {
+                super.remove(fb, offset, length);
+                SwingUtilities.invokeLater(() -> reformatAmount(fb.getDocument()));
             }
 
             @Override
-            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
-                    throws BadLocationException {
-                String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
-                String newText = currentText.substring(0, offset) + text + currentText.substring(offset + length);
-                if (isValid(newText)) {
-                    super.replace(fb, offset, length, text, attrs);
-                }
+            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) 
+                throws BadLocationException {
+                super.replace(fb, offset, length, text, attrs);
+                SwingUtilities.invokeLater(() -> reformatAmount(fb.getDocument()));
             }
 
             private boolean isValid(String text) {
                 if (!text.startsWith("₱")) return false;
-                String numericPart = text.substring(1);
+                String numericPart = text.substring(1).replace(",", ""); // Allow commas by ignoring them in validation
                 return numericPart.matches("^\\d*(\\.\\d*)?$");
+            }
+            
+            private void reformatAmount(Document doc) {
+                try {
+                    String originalText = doc.getText(0, doc.getLength());
+                    String text = originalText.replace("₱", "").replaceAll(",", "");
+
+                    // Handle empty case
+                    if (text.isEmpty()) {
+                        txtAmount.setText("₱");
+                        return;
+                    }
+
+                    // Handle multiple decimal points
+                    int decimalIndex = text.indexOf('.');
+                    String integerPart = decimalIndex != -1 ? text.substring(0, decimalIndex) : text;
+                    String decimalPart = decimalIndex != -1 ? 
+                        "." + text.substring(decimalIndex + 1).replaceAll("\\.", "") : "";
+
+                    // Format integer part with commas
+                    if (!integerPart.isEmpty()) {
+                        try {
+                            long num = Long.parseLong(integerPart);
+                            NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
+                            integerPart = nf.format(num);
+                        } catch (NumberFormatException e) {
+                            // Fallback to unformatted if invalid number
+                            integerPart = text.split("\\.")[0];
+                        }
+                    }
+
+                    int originalCaretPos = txtAmount.getCaretPosition();
+
+                    // Build new formatted text
+                    String newText = "₱" + integerPart + decimalPart;
+                    txtAmount.setText(newText);
+
+                    // Calculate new caret position
+                    String cleanOriginal = originalText.replaceAll("[^0-9.]", "");
+                    String cleanNew = newText.substring(1).replaceAll("[^0-9.]", "");
+
+                    int newCaretPos = originalCaretPos;
+                    if (originalCaretPos > 0) {
+                        // Count valid characters before original caret
+                        int validCharsBefore = 0;
+                        for (int i = 0; i < originalCaretPos && i < originalText.length(); i++) {
+                            char c = originalText.charAt(i);
+                            if (Character.isDigit(c) || c == '.') validCharsBefore++;
+                        }
+
+                        // Find equivalent position in new text
+                        int currentValidCount = 0;
+                        newCaretPos = 1; // Start after currency symbol
+                        while (newCaretPos < newText.length() && currentValidCount < validCharsBefore) {
+                            char c = newText.charAt(newCaretPos);
+                            if (Character.isDigit(c) || c == '.') currentValidCount++;
+                            newCaretPos++;
+                        }
+                    }
+
+                    // Ensure valid position
+                    newCaretPos = Math.min(Math.max(newCaretPos, 1), newText.length());
+                    txtAmount.setCaretPosition(newCaretPos);
+
+                } catch (BadLocationException | NumberFormatException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        txtAmount.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                handleAmountFocusGained();
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                handleAmountFocusLost();
             }
         });
     }
     
     private void handleAmountFocusGained() {
-        String currentText = txtAmount.getText();
-        if (currentText.equals("₱0.00")) {
+        if (txtAmount.getText().equals("₱0.00")) {
             txtAmount.setText("₱");
             txtAmount.setCaretPosition(1);
-        } else {
-            try {
-                double amount = parseDouble(currentText);
-                NumberFormat nf = NumberFormat.getInstance(Locale.US);
-                nf.setGroupingUsed(false);
-                nf.setMaximumFractionDigits(10);
-                String raw = nf.format(amount);
-                
-                // Trim unnecessary decimal parts
-                if (raw.contains(".")) {
-                    raw = raw.replaceAll("0+$", "");
-                    if (raw.endsWith(".")) raw = raw.substring(0, raw.length() - 1);
-                }
-                txtAmount.setText("₱" + raw);
-                txtAmount.setCaretPosition(txtAmount.getText().length());
-            } catch (NumberFormatException ex) {
-                txtAmount.setText("₱");
-            }
         }
     }
 
     private void handleAmountFocusLost() {
-        String currentText = txtAmount.getText().replace("₱", "");
-        if (currentText.isEmpty() || currentText.equals("0.00")) {
-            txtAmount.setText("₱0.00");
-            return;
-        }
-        
         try {
             double amount = parseDouble(txtAmount.getText());
             txtAmount.setText(formatAmount(amount));
@@ -229,17 +288,16 @@ public class HospitalizationForm extends javax.swing.JFrame {
     }
     
     private String formatAmount(double amount) {
-        NumberFormat nf = NumberFormat.getInstance(Locale.US);
+        NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
         nf.setMinimumFractionDigits(2);
         nf.setMaximumFractionDigits(2);
-        nf.setGroupingUsed(true);
         return "₱" + nf.format(amount);
     }
 
-    private double parseDouble(String text) {
+    private double parseDouble(String text) throws NumberFormatException {
         try {
             String cleaned = text.replace("₱", "")
-                                .replaceAll(",", "")
+                                .replaceAll(",", "") // Remove commas before parsing
                                 .replaceAll("[^\\d.]", "");
             
             if (cleaned.isEmpty()) throw new NumberFormatException("Empty amount");
@@ -271,6 +329,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
     }
     
     private void saveAction(ActionEvent e) {
+        handleAmountFocusLost();
         if(validateInput()) {
             // Create report data map
             Map<String, Object> reportData = new HashMap<>();
@@ -291,7 +350,8 @@ public class HospitalizationForm extends javax.swing.JFrame {
             reportData.put("HospitalAddress", txtHospitalAddress.getText());
             reportData.put("CertificationDate", LocalDate.now());
             reportData.put("CertificationTime", LocalTime.now());
-            reportData.put("AmountPaid", "₱" + String.format("%.2f", parseDouble(txtAmount.getText())));
+            double amount = parseDouble(txtAmount.getText());
+            reportData.put("AmountPaid", formatAmount(amount));
             LocalDate receiptDate = datePicker.getSelectedDate();
             if (receiptDate != null) {
                 reportData.put("ReceiptDateIssued", receiptDate);
@@ -311,6 +371,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
                         saveCallback.accept(true);
                     }
                     dispose();
+                    
                 } else {
                     JOptionPane.showMessageDialog(this,
                         "Failed to save hospitalization record",
@@ -350,6 +411,16 @@ public class HospitalizationForm extends javax.swing.JFrame {
                 field.requestFocus();
                 return false;
             }
+        }
+
+        try {
+            double amount = parseDouble(txtAmount.getText());
+            if (amount <= 0) {
+                showValidationError("Amount must be greater than zero");
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            return false;
         }
         return true;
     }
@@ -402,7 +473,6 @@ public class HospitalizationForm extends javax.swing.JFrame {
         jLabel14.setText("jLabel14");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setAlwaysOnTop(true);
         setResizable(false);
 
         labelTitle.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N

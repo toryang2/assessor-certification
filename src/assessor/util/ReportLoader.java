@@ -42,7 +42,8 @@ public class ReportLoader {
                      ResultSet rs = stmt.executeQuery("SELECT id AS ID, Type AS Type, Patient, ParentGuardian, ParentGuardian2, Hospital,"
                              + " HospitalAddress, Barangay, CertificationDate, CertificationTime,"
                              + " AmountPaid, ReceiptNo, ReceiptDateIssued, PlaceIssued, Signatory"
-                             + " FROM reports")) {
+                             + " FROM reports"
+                             + " ORDER BY id DESC")) {
                     
                     // Process results
                     ResultSetMetaData meta = rs.getMetaData();
