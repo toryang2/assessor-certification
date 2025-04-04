@@ -9,6 +9,7 @@ import com.formdev.flatlaf.extras.FlatSVGUtils;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
+import java.awt.event.ItemEvent;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -22,19 +23,11 @@ import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.Set;
-import javax.swing.JFormattedTextField;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
-import javax.swing.text.DocumentFilter;
+import javax.swing.*;
+import javax.swing.text.*;
 import net.miginfocom.swing.MigLayout;
 import raven.datetime.DatePicker;
 import raven.datetime.DateSelectionAble;
-
 
 /**
  *
@@ -43,6 +36,7 @@ import raven.datetime.DateSelectionAble;
 public class HospitalizationForm extends javax.swing.JFrame {
     private Consumer<Boolean> saveCallback;
     private DatePicker datePicker;
+    private Timer messageTimer;
     
     @Override
     public void dispose(){
@@ -61,6 +55,96 @@ public class HospitalizationForm extends javax.swing.JFrame {
         setupAmountField();
         setTitle("Hospitalization");
         setIconImages( FlatSVGUtils.createWindowIconImages( "/assessor/ui/icons/certificate.svg" ) );
+        
+        // Gender combo model
+        DefaultComboBoxModel<String> defaultParentSexModel = new DefaultComboBoxModel<>();
+        defaultParentSexModel.addElement("Male");
+        defaultParentSexModel.addElement("Female");
+
+        // Relationship combo model
+        DefaultComboBoxModel<String> relationshipModel = new DefaultComboBoxModel<>();
+        relationshipModel.addElement("son");
+        relationshipModel.addElement("daughter");
+        relationshipModel.addElement("spouse");
+
+        DefaultComboBoxModel<String> guardianModel = new DefaultComboBoxModel<>();
+        guardianModel.addElement("son");
+
+        JCheckBox[] maritalCheckboxes = {
+            checkBoxMarried, 
+            checkBoxSingle, 
+            checkBoxGuardian
+        };
+
+        // Add item listener to each checkbox
+        for (JCheckBox checkbox : maritalCheckboxes) {
+            checkbox.addItemListener(e -> {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    // Uncheck other boxes when one is checked
+                    for (JCheckBox other : maritalCheckboxes) {
+                        if (other != e.getSource()) {
+                            other.setSelected(false);
+                        }
+                    }
+
+                    // Update combos based on selection
+                    if (checkbox == checkBoxMarried) {
+                        comboParentSex.setEnabled(false);
+                        comboParentSex.setSelectedItem("Married");
+                        comboRelationship.setEnabled(true);
+                        comboRelationship.setModel(relationshipModel);
+                        comboRelationship.setSelectedIndex(0);
+                    } 
+                    else if (checkbox == checkBoxSingle) {
+                        comboParentSex.setEnabled(true);
+                        comboParentSex.setModel(defaultParentSexModel);
+                        comboParentSex.setSelectedIndex(0);
+                        comboRelationship.setEnabled(true);
+                        comboRelationship.setModel(relationshipModel);
+                        comboRelationship.setSelectedIndex(0);
+                    }
+                    else if (checkbox == checkBoxGuardian) {
+                        comboParentSex.setEnabled(false);
+                        comboParentSex.setSelectedItem("Guardian");
+                        comboRelationship.setEnabled(false);
+                        comboRelationship.setModel(guardianModel);
+                        comboRelationship.setSelectedIndex(0);
+                    }
+                }
+                else if (e.getStateChange() == ItemEvent.DESELECTED) {
+                    // Check if any checkbox is still selected
+                    boolean anySelected = false;
+                    for (JCheckBox cb : maritalCheckboxes) {
+                        if (cb.isSelected()) {
+                            anySelected = true;
+                            break;
+                        }
+                    }
+
+                    // If none selected, force Married to be checked
+                    if (!anySelected) {
+                        checkBoxMarried.setSelected(true);
+                    }
+                }
+
+                // Focus on parent guardian field
+                SwingUtilities.invokeLater(() -> {
+                    txtParentGuardian.requestFocusInWindow();
+                });
+            });
+        }
+
+        // Initial state setup
+        checkBoxMarried.setSelected(true);
+        comboParentSex.setEnabled(false);
+        comboParentSex.setSelectedItem("Married");
+        comboRelationship.setModel(relationshipModel);
+        comboRelationship.setSelectedIndex(0);
+        
+        SwingUtilities.invokeLater(() -> {
+            txtParentGuardian.requestFocusInWindow();
+        });
+        
         datePicker = new DatePicker();
         JFormattedTextField receiptDateIssuedPicker = new JFormattedTextField();
         datePicker.setEditor(receiptDateIssuedPicker);
@@ -75,72 +159,91 @@ public class HospitalizationForm extends javax.swing.JFrame {
             }
         });
         
+        jLabelMandatoryMessage.setVisible(false);
+        jLabelMandatoryParentGuardian.setVisible(false); 
+        jLabelMandatoryParentStudent.setVisible(false); 
+        jLabelMandatoryAddress.setVisible(false); 
+        jLabelMandatoryHospital.setVisible(false); 
+        jLabelMandatoryHospitalAddress.setVisible(false); 
+        jLabelMandatoryMessage.setVisible(false);
+            
+        messageTimer = new Timer(3000, e -> {
+            jLabelMandatoryMessage.setVisible(false);
+        });
+        messageTimer.setRepeats(false); // Only trigger once
+        
         // Clear existing layout
-    Container contentPane = getContentPane();
-    contentPane.removeAll();
-    
-    // Set up MigLayout
-    contentPane.setLayout(new MigLayout(
-        "insets 20 30 20 30, gap 10 15",
-        // 6-column layout: [labels][field1][field2][labels][field3][fill]
-        "[left][50:50:50][100:100:100][left][100:100:100]", 
-        "[][][][][][][][][][][]"
-    ));
+        Container contentPane = getContentPane();
+        contentPane.removeAll();
 
-    // Row 0: Title
-        contentPane.add(labelTitle, "span 5, center, wrap");
+        // Set up MigLayout
+        contentPane.setLayout(new MigLayout(
+            "insets 20 30 20 30, gap 5 15",
+            // 6-column layout: [labels][field1][field2][labels][field3][fill]
+            "[left][5:5:5][50:50:50][50:50:50][70:70:70][left][80:80:80]", 
+            "[][][][][][][][][][][]"
+        ));
+
+        // Row 0: Title
+        contentPane.add(labelTitle, "span 7, center, wrap");
 
         // Row 1: Marital Status
         JPanel maritalPanel = new JPanel(new MigLayout("gap 15, insets 0, align center"));
-        maritalPanel.add(checkBoxSingle);
         maritalPanel.add(checkBoxMarried);
+        maritalPanel.add(checkBoxSingle);
         maritalPanel.add(checkBoxGuardian);
-        contentPane.add(maritalPanel, "span 5, center, wrap");
+        contentPane.add(maritalPanel, "span 7, center, wrap");
 
         // Row 2: Parent/Guardian
         contentPane.add(labelParentGuardian, "cell 0 2");
-        contentPane.add(txtParentGuardian, "cell 1 2 3 1, growx, pushx, w 100%");
-        contentPane.add(comboParentSex, "cell 4 2, growx, pushx, w 100%, wrap");
+        contentPane.add(jLabelMandatoryParentGuardian);
+        contentPane.add(txtParentGuardian, "cell 2 2 4 1, growx, pushx, w 100%");
+        contentPane.add(comboParentSex, "cell 6 2, growx, pushx, w 100%, wrap");
 
         // Row 3: Parent/Guardian 2
         contentPane.add(labelParentGuardian2, "cell 0 3");
-        contentPane.add(txtParentGuardian2, "cell 1 3 4 1, growx, pushx, w 100%, wrap");
+        contentPane.add(txtParentGuardian2, "cell 2 3 5 1, growx, pushx, w 100%, wrap");
 
         // Row 4: Patient/Student
         contentPane.add(labelPatientStudent);
-        contentPane.add(txtPatientStudent, "cell 1 4 4 1, growx, pushx, w 100%, wrap");
+        contentPane.add(jLabelMandatoryParentStudent);
+        contentPane.add(txtPatientStudent, "cell 2 4 5 1, growx, pushx, w 100%, wrap");
 
         // Row 5: Address
         contentPane.add(labelAddress);
-        contentPane.add(txtBarangay, "cell 1 5 2 1, growx, pushx, w 100%, wrap");
-        contentPane.add(labelRelationship, "cell 3 5");
-        contentPane.add(comboRelationship, "cell 4 5, growx, wrap");
+        contentPane.add(jLabelMandatoryAddress);
+        contentPane.add(txtAddress, "cell 2 5 3 1, growx, pushx, w 100%, wrap");
+        contentPane.add(labelRelationship, "cell 5 5");
+        contentPane.add(comboRelationship, "cell 6 5, growx, wrap");
 
         // Row 6: Hospital
         contentPane.add(labelHospital, "cell 0 6");
-        contentPane.add(txtHospital, "cell 1 6 4 1, growx, pushx, w 100%, wrap");
+        contentPane.add(jLabelMandatoryHospital);
+        contentPane.add(txtHospital, "cell 2 6 5 1, growx, pushx, w 100%, wrap");
 
         // Row 7: Hospital Address
         contentPane.add(labelHospitalAddress, "cell 0 7");
-        contentPane.add(txtHospitalAddress, "cell 1 7 4 1, growx, pushx, w 100%, wrap");
+        contentPane.add(jLabelMandatoryHospitalAddress);
+        contentPane.add(txtHospitalAddress, "cell 2 7 5 1, growx, pushx, w 100%, wrap");
 
         // Row 8: Amount & Receipt
         contentPane.add(labelAmount, "cell 0 8");
-        contentPane.add(txtAmount, "cell 1 8 2 1, growx");
-        contentPane.add(labelReceiptNo, "cell 3 8");
-        contentPane.add(receiptNoField, "cell 4 8, growx, wrap");
+        contentPane.add(txtAmount, "cell 2 8 3 1, w 120");
+        contentPane.add(labelReceiptNo, "cell 5 8");
+        contentPane.add(txtReceiptNo, "cell 6 8, growx, wrap");
 
         // Row 9: Date & Place
         contentPane.add(labelDateIssued, "cell 0 9");
-        contentPane.add(receiptDateIssuedPicker, "cell 1 9 2 1, growx"); // Using DatePicker
-        contentPane.add(labelPlaceIssued, "cell 3 9");
-        contentPane.add(placeIssuedField, "cell 4 9, growx, wrap");
+        contentPane.add(receiptDateIssuedPicker, "cell 2 9 2 1, w 120"); // Using DatePicker
+        contentPane.add(labelPlaceIssued, "cell 4 9");
+        contentPane.add(txtPlaceIssued, "cell 5 9 2 1, growx, wrap");
 
         // Row 10: Buttons
         JPanel buttonPanel = new JPanel(new MigLayout("insets 0, align right"));
+        contentPane.add(jLabelMandatoryMessage,"cell 0 10 3 1, left");
         buttonPanel.add(btnSave);
         buttonPanel.add(btnCancel);
-        contentPane.add(buttonPanel, "span 5, right");
+        contentPane.add(buttonPanel, "span 6, right");
 
         pack();
     }
@@ -333,37 +436,72 @@ public class HospitalizationForm extends javax.swing.JFrame {
         handleAmountFocusLost();
         if(validateInput()) {
             // Create report data map
+            String signatory = DatabaseSaveHelper.getAssessorName(1);
             Map<String, Object> reportData = new HashMap<>();
-            Object selected = comboParentSex.getSelectedItem();
-            if(selected != null) {
-                reportData.put("ParentSexIfSingle", selected.toString());
+            if (signatory !=null) {
+                reportData.put("Signatory", signatory);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Default assessor not configured",
+                    "Configuration Warning",
+                    JOptionPane.WARNING_MESSAGE);                
             }
-
-            // Map form fields to database columns
-            reportData.put("Patient", txtPatientStudent.getText());
-            reportData.put("ParentGuardian", txtParentGuardian.getText());
-            reportData.put("ParentGuardian2", txtParentGuardian2.getText());
             
-            String parentSex = (selected != null) ? selected.toString() : "";
+            // Determine selected marital status
+            String maritalStatus = 
+                checkBoxMarried.isSelected() ? "MARRIED" :
+                checkBoxSingle.isSelected() ? "SINGLE" :
+                checkBoxGuardian.isSelected() ? "GUARDIAN" : 
+                "Unknown";  // Fallback if none selected
+
+            // Add to report data
+            reportData.put("MaritalStatus", maritalStatus);
+            if ("Unknown".equals(maritalStatus)) {
+                JOptionPane.showMessageDialog(this,
+                    "Please select a marital status",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            // Map form fields to database columns
+            //
+            reportData.put("ParentGuardian", txtParentGuardian.getText());
+            //
+            String parentSex = comboParentSex.isEnabled() ? 
+               comboParentSex.getSelectedItem().toString() : 
+               checkBoxMarried.isSelected() ? "Married" : "Guardian";
             reportData.put("ParentSexIfSingle", parentSex);
-            reportData.put("Barangay", txtBarangay.getText());
+            //
+            reportData.put("ParentGuardian2", txtParentGuardian2.getText());
+            reportData.put("Patient", txtPatientStudent.getText());
+            reportData.put("Barangay", txtAddress.getText());
+            //
+            if (checkBoxGuardian.isSelected()) {
+                reportData.put("Relationship", "Legal Guardian");
+            } else {
+                Object relationship = comboRelationship.getSelectedItem();
+                if (relationship != null) {
+                    reportData.put("Relationship", relationship.toString());
+                }
+            }
+            //
             reportData.put("Hospital", txtHospital.getText());
             reportData.put("HospitalAddress", txtHospitalAddress.getText());
             reportData.put("CertificationDate", LocalDate.now());
             reportData.put("CertificationTime", LocalTime.now());
             double amount = parseDouble(txtAmount.getText());
             reportData.put("AmountPaid", formatAmount(amount));
+            reportData.put("ReceiptNo", txtReceiptNo.getText());
             LocalDate receiptDate = datePicker.getSelectedDate();
             if (receiptDate != null) {
                 reportData.put("ReceiptDateIssued", receiptDate);
             }
-            
+            reportData.put("PlaceIssued", txtPlaceIssued.getText());
 //            reportData.put("userInitials", currentUser.getInitials());
 
             // Add other fields as needed
             // reportData.put("MaritalStatus", cmbMaritalStatus.getSelectedItem());
             // reportData.put("Barangay", txtBarangay.getText());
-
             try {
                 boolean success = DatabaseSaveHelper.saveReport("Hospitalization", reportData);
 
@@ -398,32 +536,53 @@ public class HospitalizationForm extends javax.swing.JFrame {
     
     // Update validation to match your actual form fields
     private boolean validateInput() {
-        List<JTextField> requiredFields = List.of(
-            txtParentGuardian,
-            txtPatientStudent, 
-            txtBarangay,
-            txtHospital, 
-            txtHospitalAddress
-        );
+        Object[][] requiredFields = {
+            { jLabelMandatoryParentGuardian, txtParentGuardian },
+            { jLabelMandatoryParentStudent, txtPatientStudent },
+            { jLabelMandatoryAddress, txtAddress },
+            { jLabelMandatoryHospital, txtHospital },
+            { jLabelMandatoryHospitalAddress, txtHospitalAddress }
+        };
 
-        for (JTextField field : requiredFields) {
-            if (field.getText().trim().isEmpty()) {
-                showValidationError(field.getName() + " is required");
+        boolean isValid = true;
+        
+        if(comboParentSex.getSelectedItem() == null) {
+            // Show error for parent sex
+            isValid = false;
+        }
+    
+        if(comboRelationship.getSelectedItem() == null) {
+            // Show error for relationship
+            isValid = false;
+        }
+
+        // First: Show indicators based on current validity
+        for (Object[] pair : requiredFields) {
+            JLabel mandatoryLabel = (JLabel) pair[0];
+            JTextField field = (JTextField) pair[1];
+            boolean isEmpty = field.getText().trim().isEmpty();
+
+            mandatoryLabel.setVisible(isEmpty);
+
+            if (isEmpty && isValid) {
                 field.requestFocus();
-                return false;
+                isValid = false;
             }
         }
 
-        try {
-            double amount = parseDouble(txtAmount.getText());
-            if (amount <= 0) {
-                showValidationError("Amount must be greater than zero");
-                return false;
-            }
-        } catch (NumberFormatException e) {
-            return false;
+        // Handle mandatory message with timer
+        if (!isValid) {
+            jLabelMandatoryMessage.setVisible(true);
+            btnSave.repaint();
+            
+            messageTimer.stop(); // Stop existing timer if running
+            messageTimer.start();
+        } else {
+            jLabelMandatoryMessage.setVisible(false);
+            messageTimer.stop();
         }
-        return true;
+
+        return isValid;
     }
     
     /**
@@ -439,7 +598,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
         labelTitle = new javax.swing.JLabel();
         labelParentGuardian = new javax.swing.JLabel();
         txtParentGuardian = new javax.swing.JTextField();
-        jLabelMandatory = new javax.swing.JLabel();
+        jLabelMandatoryParentGuardian = new javax.swing.JLabel();
         comboParentSex = new javax.swing.JComboBox<>();
         labelParentGuardian2 = new javax.swing.JLabel();
         txtParentGuardian2 = new javax.swing.JTextField();
@@ -449,7 +608,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
         labelPatientStudent = new javax.swing.JLabel();
         txtPatientStudent = new javax.swing.JTextField();
         labelRelationship = new javax.swing.JLabel();
-        txtBarangay = new javax.swing.JTextField();
+        txtAddress = new javax.swing.JTextField();
         comboRelationship = new javax.swing.JComboBox<>();
         labelAddress = new javax.swing.JLabel();
         labelHospital = new javax.swing.JLabel();
@@ -459,17 +618,18 @@ public class HospitalizationForm extends javax.swing.JFrame {
         labelAmount = new javax.swing.JLabel();
         txtAmount = new javax.swing.JTextField();
         labelReceiptNo = new javax.swing.JLabel();
-        receiptNoField = new javax.swing.JTextField();
+        txtReceiptNo = new javax.swing.JTextField();
         labelDateIssued = new javax.swing.JLabel();
         labelPlaceIssued = new javax.swing.JLabel();
-        placeIssuedField = new javax.swing.JTextField();
+        txtPlaceIssued = new javax.swing.JTextField();
         btnSave = new javax.swing.JToggleButton();
-        jLabelMandatory2 = new javax.swing.JLabel();
-        jLabelMandatory3 = new javax.swing.JLabel();
-        jLabelMandatory4 = new javax.swing.JLabel();
-        jLabelMandatory5 = new javax.swing.JLabel();
+        jLabelMandatoryParentStudent = new javax.swing.JLabel();
+        jLabelMandatoryAddress = new javax.swing.JLabel();
+        jLabelMandatoryHospital = new javax.swing.JLabel();
+        jLabelMandatoryHospitalAddress = new javax.swing.JLabel();
         btnCancel = new javax.swing.JButton();
         receiptDateIssuedPicker = new javax.swing.JTextField();
+        jLabelMandatoryMessage = new javax.swing.JLabel();
 
         jLabel14.setText("jLabel14");
 
@@ -480,18 +640,19 @@ public class HospitalizationForm extends javax.swing.JFrame {
         labelTitle.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         labelTitle.setText("CLIENT INFORMATION");
 
-        labelParentGuardian.setText("Parent/ Guardian");
+        labelParentGuardian.setText("Parent/ Guardian  ");
 
         txtParentGuardian.setToolTipText("");
 
-        jLabelMandatory.setForeground(new java.awt.Color(255, 0, 0));
-        jLabelMandatory.setText("*");
+        jLabelMandatoryParentGuardian.setForeground(new java.awt.Color(255, 0, 0));
+        jLabelMandatoryParentGuardian.setText("*");
 
         comboParentSex.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Male", "Female" }));
 
         labelParentGuardian2.setText("Parent/ Guardian");
 
         checkBoxSingle.setText("Single");
+        checkBoxSingle.setToolTipText("");
 
         checkBoxMarried.setText("Married");
 
@@ -524,19 +685,21 @@ public class HospitalizationForm extends javax.swing.JFrame {
 
         btnSave.setText("Save");
 
-        jLabelMandatory2.setForeground(new java.awt.Color(255, 0, 0));
-        jLabelMandatory2.setText("*");
+        jLabelMandatoryParentStudent.setForeground(new java.awt.Color(255, 0, 0));
+        jLabelMandatoryParentStudent.setText("*");
 
-        jLabelMandatory3.setForeground(new java.awt.Color(255, 0, 0));
-        jLabelMandatory3.setText("*");
+        jLabelMandatoryAddress.setForeground(new java.awt.Color(255, 0, 0));
+        jLabelMandatoryAddress.setText("*");
 
-        jLabelMandatory4.setForeground(new java.awt.Color(255, 0, 0));
-        jLabelMandatory4.setText("*");
+        jLabelMandatoryHospital.setForeground(new java.awt.Color(255, 0, 0));
+        jLabelMandatoryHospital.setText("*");
 
-        jLabelMandatory5.setForeground(new java.awt.Color(255, 0, 0));
-        jLabelMandatory5.setText("*");
+        jLabelMandatoryHospitalAddress.setForeground(new java.awt.Color(255, 0, 0));
+        jLabelMandatoryHospitalAddress.setText("*");
 
         btnCancel.setText("Cancel");
+
+        jLabelMandatoryMessage.setText("<html><font color='red'>*</font> Mandatory fields required</html>");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -554,51 +717,54 @@ public class HospitalizationForm extends javax.swing.JFrame {
                             .addComponent(labelPatientStudent)
                             .addComponent(labelAddress))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(jLabelMandatory2)
-                                    .addComponent(jLabelMandatory4))
-                                .addComponent(jLabelMandatory5))
-                            .addComponent(jLabelMandatory3, javax.swing.GroupLayout.PREFERRED_SIZE, 5, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtHospitalAddress)
-                            .addComponent(txtBarangay, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtHospital)
-                            .addComponent(txtPatientStudent, javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGap(197, 197, 197)
-                                .addComponent(labelRelationship)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                            .addComponent(jLabelMandatoryParentStudent)
+                                            .addComponent(jLabelMandatoryHospital))
+                                        .addComponent(jLabelMandatoryHospitalAddress))
+                                    .addComponent(jLabelMandatoryAddress, javax.swing.GroupLayout.PREFERRED_SIZE, 5, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(comboRelationship, 0, 1, Short.MAX_VALUE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGap(206, 206, 206)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(txtHospitalAddress)
+                                    .addComponent(txtAddress, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtHospital)
+                                    .addComponent(txtPatientStudent, javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                        .addGap(197, 197, 197)
+                                        .addComponent(labelRelationship)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(comboRelationship, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                            .addComponent(txtAmount, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE)
+                                            .addComponent(receiptDateIssuedPicker))
+                                        .addGap(39, 39, 39)
+                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                                .addComponent(labelReceiptNo)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
+                                            .addGroup(layout.createSequentialGroup()
+                                                .addComponent(labelPlaceIssued)
+                                                .addGap(4, 4, 4)))
+                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(txtReceiptNo)
+                                            .addComponent(txtPlaceIssued)))))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabelMandatoryMessage, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(180, 180, 180)
                                 .addComponent(btnSave)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btnCancel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(txtAmount, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE)
-                                    .addComponent(receiptDateIssuedPicker))
-                                .addGap(39, 39, 39)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                        .addComponent(labelReceiptNo)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addComponent(labelPlaceIssued)
-                                        .addGap(4, 4, 4)))
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(receiptNoField)
-                                    .addComponent(placeIssuedField))))
+                                .addComponent(btnCancel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                         .addGap(20, 20, 20))
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(labelParentGuardian2)
                             .addComponent(labelParentGuardian))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabelMandatory)
+                        .addComponent(jLabelMandatoryParentGuardian)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
@@ -631,7 +797,7 @@ public class HospitalizationForm extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(labelParentGuardian)
                     .addComponent(txtParentGuardian, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabelMandatory)
+                    .addComponent(jLabelMandatoryParentGuardian)
                     .addComponent(comboParentSex, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -641,40 +807,41 @@ public class HospitalizationForm extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(labelPatientStudent)
                     .addComponent(txtPatientStudent, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabelMandatory2))
+                    .addComponent(jLabelMandatoryParentStudent))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(labelRelationship)
                     .addComponent(comboRelationship, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(labelAddress)
-                    .addComponent(jLabelMandatory3)
-                    .addComponent(txtBarangay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabelMandatoryAddress)
+                    .addComponent(txtAddress, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(labelHospital)
                     .addComponent(txtHospital, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabelMandatory4))
+                    .addComponent(jLabelMandatoryHospital))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(labelHospitalAddress)
                     .addComponent(txtHospitalAddress, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabelMandatory5))
+                    .addComponent(jLabelMandatoryHospitalAddress))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(labelAmount)
                     .addComponent(txtAmount, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(labelReceiptNo)
-                    .addComponent(receiptNoField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(txtReceiptNo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(labelDateIssued)
                     .addComponent(labelPlaceIssued)
-                    .addComponent(placeIssuedField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtPlaceIssued, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(receiptDateIssuedPicker, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnSave)
-                    .addComponent(btnCancel))
+                    .addComponent(btnCancel)
+                    .addComponent(jLabelMandatoryMessage, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(24, Short.MAX_VALUE))
         );
 
@@ -730,11 +897,12 @@ public class HospitalizationForm extends javax.swing.JFrame {
     private javax.swing.JComboBox<String> comboParentSex;
     private javax.swing.JComboBox<String> comboRelationship;
     private javax.swing.JLabel jLabel14;
-    private javax.swing.JLabel jLabelMandatory;
-    private javax.swing.JLabel jLabelMandatory2;
-    private javax.swing.JLabel jLabelMandatory3;
-    private javax.swing.JLabel jLabelMandatory4;
-    private javax.swing.JLabel jLabelMandatory5;
+    private javax.swing.JLabel jLabelMandatoryAddress;
+    private javax.swing.JLabel jLabelMandatoryHospital;
+    private javax.swing.JLabel jLabelMandatoryHospitalAddress;
+    private javax.swing.JLabel jLabelMandatoryMessage;
+    private javax.swing.JLabel jLabelMandatoryParentGuardian;
+    private javax.swing.JLabel jLabelMandatoryParentStudent;
     private javax.swing.JLabel labelAddress;
     private javax.swing.JLabel labelAmount;
     private javax.swing.JLabel labelDateIssued;
@@ -747,15 +915,15 @@ public class HospitalizationForm extends javax.swing.JFrame {
     private javax.swing.JLabel labelReceiptNo;
     private javax.swing.JLabel labelRelationship;
     private javax.swing.JLabel labelTitle;
-    private javax.swing.JTextField placeIssuedField;
     private javax.swing.JTextField receiptDateIssuedPicker;
-    private javax.swing.JTextField receiptNoField;
+    private javax.swing.JTextField txtAddress;
     private javax.swing.JTextField txtAmount;
-    private javax.swing.JTextField txtBarangay;
     private javax.swing.JTextField txtHospital;
     private javax.swing.JTextField txtHospitalAddress;
     private javax.swing.JTextField txtParentGuardian;
     private javax.swing.JTextField txtParentGuardian2;
     private javax.swing.JTextField txtPatientStudent;
+    private javax.swing.JTextField txtPlaceIssued;
+    private javax.swing.JTextField txtReceiptNo;
     // End of variables declaration//GEN-END:variables
 }

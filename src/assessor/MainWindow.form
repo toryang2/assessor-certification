@@ -69,7 +69,7 @@
               <EmptySpace max="-2" attributes="0"/>
               <Component id="jMainPanel" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="jTabbedPane" pref="672" max="32767" attributes="0"/>
+              <Component id="jTabbedPane" max="32767" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
               <Component id="jPanel1" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>

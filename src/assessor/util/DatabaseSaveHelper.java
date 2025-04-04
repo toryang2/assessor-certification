@@ -21,7 +21,26 @@ public class DatabaseSaveHelper {
         SQL_TYPES.put(LocalDate.class, Types.DATE);
         SQL_TYPES.put(LocalTime.class, Types.TIME);
     }
+    public static String getAssessorName(int id) {
+        String sql = "SELECT Assessor FROM sys_signatories WHERE id = ?";
 
+        try (Connection conn = DriverManager.getConnection(
+                ConfigHelper.getDbUrl(),
+                ConfigHelper.getDbUser(),
+                ConfigHelper.getDbPassword());
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Assessor");
+                }
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Failed to retrieve assessor", e);
+        }
+        return null;
+    }
     public static boolean saveReport(String reportType, Map<String, Object> data) {
         try (Connection conn = DriverManager.getConnection(
                 ConfigHelper.getDbUrl(),

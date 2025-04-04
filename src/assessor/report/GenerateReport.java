@@ -11,6 +11,8 @@ import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.*;
@@ -19,11 +21,38 @@ import java.io.InputStream;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import net.sf.jasperreports.swing.JRViewer;
+import java.util.stream.Collectors;
 
 public class GenerateReport {
+    
+        private static final String[] FONT_RESOURCES = {
+        "/resources/fonts/BerlinSansFB.ttf",
+        "/resources/fonts/BernardMTCondensed.ttf"
+    };
+
+    static {
+        try {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            for (String fontPath : FONT_RESOURCES) {
+                try (InputStream fontStream = GenerateReport.class.getResourceAsStream(fontPath)) {
+                    if (fontStream == null) {
+                        System.err.println("Font resource missing: " + fontPath);
+                        continue;
+                    }
+                    Font font = Font.createFont(Font.TRUETYPE_FONT, fontStream);
+                    ge.registerFont(font);
+                    System.out.println("Registered font: " + font.getFontName());
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Font initialization failed", e);
+        }
+    }
     
     public static void generateReport(Map<String, Object> parameters, 
                                     String customTitle, String iconPath) {
@@ -73,6 +102,8 @@ public class GenerateReport {
     private static InputStream loadTemplate(Map<String, Object> parameters) 
         throws FileNotFoundException {
 
+        verifyFontAvailability();
+        
         // 1. Get and validate ReportType parameter
         Object typeObj = parameters.get("ReportType");
         if (typeObj == null) {
@@ -102,6 +133,27 @@ public class GenerateReport {
             );
         }
         return stream;
+    }
+    
+    private static void verifyFontAvailability() {
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        String[] availableFonts = ge.getAvailableFontFamilyNames();
+
+        String[] requiredFonts = {"Berlin Sans FB", "Bernard MT Condensed"};
+
+        List<String> missingFonts = Arrays.stream(requiredFonts)
+            .filter(font -> 
+                Arrays.stream(availableFonts)
+                    .noneMatch(available -> available.equalsIgnoreCase(font))
+            )  // Properly closed filter
+            .collect(Collectors.toList());
+
+        if (!missingFonts.isEmpty()) {
+            throw new RuntimeException(
+                "Missing required fonts:\n- " + 
+                String.join("\n- ", missingFonts)
+            );
+        }
     }
 
     private static JasperPrint compileAndFill(InputStream jrxml, 
@@ -141,6 +193,17 @@ public class GenerateReport {
                                            String customTitle, 
                                            String iconPath) {
         try {
+            if (parameters == null || parameters.isEmpty()) {
+            throw new IllegalArgumentException("Report parameters cannot be empty");
+            }
+
+            // Verify both fonts are available
+            String[] requiredFonts = {"Berlin Sans FB", "Bernard MT Condensed"};
+            List<String> missingFonts = getMissingFonts(requiredFonts);
+
+            if (!missingFonts.isEmpty()) {
+                throw new JRException("Missing required fonts: " + String.join(", ", missingFonts));
+            }
             Connection connection = createConnection();
             validateIDs(parameters.get("SelectedIDs"));
             InputStream jrxmlStream = loadTemplate(parameters);
@@ -149,6 +212,23 @@ public class GenerateReport {
         } catch (Exception e) {
             throw new RuntimeException("Report generation failed", e);
         }
+    }
+    
+    private static List<String> getMissingFonts(String... fontNames) {
+        List<String> missing = new ArrayList<>();
+        String[] availableFonts = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                                .getAvailableFontFamilyNames();
+
+        for (String requiredFont : fontNames) {
+            boolean found = Arrays.stream(availableFonts)
+                .anyMatch(f -> f.equalsIgnoreCase(requiredFont));
+
+            if (!found) {
+                missing.add(requiredFont);
+            }
+        }
+
+        return missing;
     }
 
     private static JPanel createReportViewer(JasperPrint print, 
