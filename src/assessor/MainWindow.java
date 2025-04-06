@@ -4,7 +4,7 @@
  */
 package assessor;
 
-import assessor.input.HospitalizationForm;
+import assessor.input.*;
 import assessor.report.GenerateReport;
 import assessor.ui.UserSettings;
 import assessor.util.CurrencyRenderer;
@@ -16,6 +16,7 @@ import assessor.util.ReportLoader;
 import assessor.util.ReportLoader.LoadCallbacks;
 import assessor.util.TableRightRenderer;
 import assessor.util.TimeRenderer;
+import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.formdev.flatlaf.extras.FlatSVGUtils;
 import java.awt.BorderLayout;
@@ -24,18 +25,17 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.event.ActionEvent;
+import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.lang.reflect.Method;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -43,7 +43,6 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
@@ -52,6 +51,79 @@ import javax.swing.table.TableRowSorter;
  * @author Toryang
  */
 public class MainWindow extends javax.swing.JFrame {
+    
+    private class LoginForm extends JDialog {
+        private JTextField txtUsername;
+        private JPasswordField txtPassword;
+        private boolean authenticated = false;
+
+        public LoginForm() {
+            super(MainWindow.this, "Login", true);  // Changed here
+            initialize();
+        }
+
+        private void initialize() {
+            setLayout(new BorderLayout(10, 10));
+            setPreferredSize(new Dimension(300, 200));
+
+            // Header
+            JPanel headerPanel = new JPanel();
+            JLabel lblTitle = new JLabel("Assessor Login");
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            headerPanel.add(lblTitle);
+
+            // Form
+            JPanel formPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+            txtUsername = new JTextField();
+            txtPassword = new JPasswordField();
+
+            formPanel.add(new JLabel("Username:"));
+            formPanel.add(txtUsername);
+            formPanel.add(new JLabel("Password:"));
+            formPanel.add(txtPassword);
+
+            // Buttons
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton btnLogin = new JButton("Login");
+            JButton btnCancel = new JButton("Cancel");
+
+            btnLogin.addActionListener(e -> authenticate());
+            btnCancel.addActionListener(e -> dispose());
+
+            buttonPanel.add(btnCancel);
+            buttonPanel.add(btnLogin);
+
+            // Layout
+            add(headerPanel, BorderLayout.NORTH);
+            add(formPanel, BorderLayout.CENTER);
+            add(buttonPanel, BorderLayout.SOUTH);
+
+            pack();
+            setLocationRelativeTo(null);
+            setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        }
+
+        private void authenticate() {
+            String username = txtUsername.getText().trim();
+            String password = new String(txtPassword.getPassword()).trim();
+
+            // Simple hardcoded credentials (replace with real authentication)
+            if ("admin".equals(username) && "admin".equals(password)) {
+                authenticated = true;
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Invalid username or password",
+                    "Authentication Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        public boolean isAuthenticated() {
+            return authenticated;
+        }
+    }
+    
     private UserSettings userSettings;
     private NonEditableTableModel model;
     
@@ -71,7 +143,7 @@ public class MainWindow extends javax.swing.JFrame {
         setTabIcons();
         setupButtonActions();
     }
-
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -480,10 +552,26 @@ public class MainWindow extends javax.swing.JFrame {
     
     private void setupButtonActions() {
         btnHospitalization.addActionListener(e -> openHospitalizationForm());
+        btnScholarship.addActionListener(e -> openScholarshipForm());
     }
     
     private void openHospitalizationForm() {
         HospitalizationForm form = new HospitalizationForm();
+        
+        // Set callback for save completion
+        form.setSaveCallback(success -> {
+            if (success) {
+                autoGenerateReport = true; // Set flag to trigger report after reload
+                reportLoader.loadData();
+            }
+        });
+        
+        form.setLocationRelativeTo(this);
+        form.setVisible(true);
+    }
+    
+        private void openScholarshipForm() {
+        ScholarshipForm form = new ScholarshipForm();
         
         // Set callback for save completion
         form.setSaveCallback(success -> {
@@ -960,37 +1048,35 @@ public class MainWindow extends javax.swing.JFrame {
         jTableReports.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     }
     
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
+public static void main(String args[]) {
+    // Set up FlatLaf
+    try {
+        UIManager.setLookAndFeel(new FlatLightLaf());
+    } catch(Exception ex) {
+        System.err.println("Failed to initialize FlatLaf");
+    }
+
+    // Create and show login FIRST
+    SwingUtilities.invokeLater(() -> {
+        MainWindow window = new MainWindow();  // MainWindow instance needed for inner class
+        LoginForm login = window.new LoginForm();
+        login.setVisible(true);
+        
+        // This listener handles the login result
+        login.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                if (login.isAuthenticated()) {
+                    window.setVisible(true);  // Show main window
+                } else {
+                    System.exit(0);  // Exit if failed
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-        
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new MainWindow().setVisible(true);
-            }
         });
-    }
+    });
+}
+    
+    
     
     private void styleButtons(JButton... buttons) {
         for (JButton button : buttons) {

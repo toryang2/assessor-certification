@@ -97,7 +97,7 @@ Municipality of Kitaotao]]></text>
 			<text><![CDATA[OFFICE OF THE MUNICIPAL ASSESSOR]]></text>
 		</element>
 		<element kind="staticText" uuid="b1dc0259-7f47-4360-9776-a2e6bb966a26" positionType="FixRelativeToBottom" x="0" y="35" width="443" height="25" fontName="Bernard MT Condensed" fontSize="20.0" hTextAlign="Center">
-			<text><![CDATA[CERTIFICATION]]></text>
+			<text><![CDATA[SCHOLARSHIP]]></text>
 		</element>
 	</columnHeader>
 	<detail>
